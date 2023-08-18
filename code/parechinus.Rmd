@@ -1,0 +1,167 @@
+---
+title: "parechinus"
+author: "Aimee"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+```
+
+This project aims to compare 8 treatments in terms of:
+
+1.  Somatic growth rate (g/month and cm/month)
+
+2.  Feed conversion ratio
+
+3.  Gonad quality
+
+4.  Gonad development
+
+1.  **Somatic Growth Rate**
+
+```{r load data, echo = FALSE}
+setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
+data <- read_excel("urchin_data.xlsx")
+FCR_weight <- read_excel("FCR_data.xlsx", sheet = "weight")
+FCR_feed <- read_excel("FCR_data.xlsx", sheet = "feed")
+```
+
+```{r subset weight growth data by time, echo=FALSE}
+#initial
+
+initial <- data %>% 
+  filter(time == 0)
+
+initial_a <- initial %>% filter(temperature == "ambient")
+initial_a_f <- initial_a %>% filter(diet =="formulated")
+initial_a_m <- initial_a %>% filter(diet =="mixed")
+initial_a_u <- initial_a %>% filter(diet =="ulva")
+initial_a_k <- initial_a %>% filter(diet =="kelp")
+
+
+initial_w <- initial %>% filter(temperature == "warm")
+initial_w_f <- initial_w %>% filter(diet =="formulated")
+initial_w_m <- initial_w %>% filter(diet =="mixed")
+initial_w_u <- initial_w %>% filter(diet =="ulva")
+initial_w_k <- initial_w %>% filter(diet =="kelp")
+
+
+
+#month 1
+
+m1 <- data %>% 
+  filter(time == 1)
+
+m1_a <- m1 %>% filter(temperature == "ambient")
+m1_a_f <- m1_a %>% filter(diet =="formulated")
+m1_a_m <- m1_a %>% filter(diet =="mixed")
+m1_a_u <- m1_a %>% filter(diet =="ulva")
+m1_a_k <- m1_a %>% filter(diet =="kelp")
+
+
+m1_w <- m1 %>% filter(temperature == "warm")
+m1_w_f <- m1_w %>% filter(diet =="formulated")
+m1_w_m <- m1_w %>% filter(diet =="mixed")
+m1_w_u <- m1_w %>% filter(diet =="ulva")
+m1_w_k <- m1_w %>% filter(diet =="kelp")
+
+
+```
+
+```{r subset data by treatment, echo = FALSE}
+fa <- data %>% 
+  filter(temperature == "ambient", diet == "formulated")
+
+fw <- data %>% 
+  filter(temperature == "warm", diet == "formulated") 
+
+ma <- data %>% 
+  filter(temperature == "ambient", diet == "mixed")
+
+mw <- data %>% 
+  filter(temperature == "warm", diet == "mixed")
+
+ua <- data %>% 
+  filter(temperature == "ambient", diet == "ulva")
+
+uw <- data %>% 
+  filter(temperature == "warm", diet == "ulva")
+
+ka <- data %>% 
+  filter(temperature == "ambient", diet == "kelp")
+
+kw <- data %>% 
+  filter(temperature == "warm", diet == "kelp")
+
+
+```
+
+A function is used to transform the data and calculate somatic growth rate in terms of weight gain & size increase.
+
+```{r function, echo=FALSE}
+data_transform_somatic <- function(data){
+initial_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 0) %>% 
+  summarise(diet = diet, temperature = temperature, T0_weight = mean(`weight (g)`), T0_size = mean(diam_ave)) 
+
+
+month1_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 1) %>% 
+  summarise(T1_weight = mean(`weight (g)`), T1_size = mean(diam_ave))
+  
+
+growth_dat1 <- initial_dat %>% left_join(month1_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T1_weight-T0_weight, s_growth = T1_size - T0_size) %>% distinct()
+
+growth_dat1
+}
+somatic_growth <- data_transform_somatic(data)
+
+write.csv(somatic_growth, "somatic_growth_data.csv", row.names = FALSE)
+
+```
+
+-   Weight gain
+
+```{r, echo=FALSE}
+
+weight_gain_plot <- ggplot(somatic_growth, aes(x = diet, y = w_growth, fill = as.factor(temperature))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Growth Rate per Diet per Temperature",
+       x = "Diet", y = "Growth Rate (g/month)",
+       fill = "Temperature") +
+  theme_classic()+scale_fill_grey()
+
+print(weight_gain_plot)
+
+```
+
+-   Size increase
+
+```{r, echo=FALSE}
+
+size_growth_plot <- ggplot(somatic_growth, aes(x = diet, y = s_growth, fill = as.factor(temperature))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Growth Rate per Diet per Temperature",
+       x = "Diet", y = "Growth Rate (cm/month)",
+       fill = "Temperature") +
+  theme_classic()+scale_fill_grey()
+
+print(size_growth_plot)
+
+```
+
+2.  **Feed Conversion Ratio**
+
+Formula used:$$
+feed consumed / weight gain
+$$
