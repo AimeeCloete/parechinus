@@ -11,6 +11,12 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
+library(knitr)  
+library(reticulate)  
+knitr::knit_engines$set(python = reticulate::eng_python)  
+library(reticulate)
+use_python("C:/Users/aimee/AppData/Local/Programs/Python/Python39/python.exe")
+py_config()
 ```
 
 This project aims to compare 8 treatments in terms of:
@@ -132,6 +138,19 @@ write.csv(somatic_growth, "somatic_growth_data.csv", row.names = FALSE)
 
 -   Weight gain
 
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+
+n = 256
+X = np.linspace(-np.pi,np.pi,n,endpoint=True)
+Y = np.sin(2*X)
+
+plt.plot (X, Y+1, color='blue', alpha=1.00)
+plt.plot (X, Y-1, color='blue', alpha=1.00)
+plt.show()
+```
+
 ```{r, echo=FALSE}
 
 weight_gain_plot <- ggplot(somatic_growth, aes(x = diet, y = w_growth, fill = as.factor(temperature))) +
@@ -153,7 +172,8 @@ size_growth_plot <- ggplot(somatic_growth, aes(x = diet, y = s_growth, fill = as
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Growth Rate per Diet per Temperature",
        x = "Diet", y = "Growth Rate (cm/month)",
-       fill = "Temperature") +
+       fill = "Temperature") + geom_hline(yintercept=0, 
+                color = "black", size=0.5) +
   theme_classic()+scale_fill_grey()
 
 print(size_growth_plot)
