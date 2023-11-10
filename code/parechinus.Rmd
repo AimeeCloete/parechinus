@@ -12,11 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(knitr)  
-library(reticulate)  
-knitr::knit_engines$set(python = reticulate::eng_python)  
-library(reticulate)
-use_python("C:/Users/aimee/AppData/Local/Programs/Python/Python39/python.exe")
-py_config()
+setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
+#library(reticulate)  
+#knitr::knit_engines$set(python = reticulate::eng_python)  
+#library(reticulate)
+#use_python("C:/Users/aimee/AppData/Local/Programs/Python/Python39/python.exe")
+#py_config()
 ```
 
 This project aims to compare 8 treatments in terms of:
@@ -33,54 +34,40 @@ This project aims to compare 8 treatments in terms of:
 
 ```{r load data, echo = FALSE}
 setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
-data <- read_excel("urchin_data.xlsx")
-FCR_weight <- read_excel("FCR_data.xlsx", sheet = "weight")
-FCR_feed <- read_excel("FCR_data.xlsx", sheet = "feed")
+parechinus_data <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/parechinus_data.xlsx")
+
+measurement_data <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/measurement_data.xlsx")
+
+#FCR_weight <- read_excel("FCR_data.xlsx", sheet = "weight")
+#FCR_feed <- read_excel("FCR_data.xlsx", sheet = "feed")
 ```
 
-```{r subset weight growth data by time, echo=FALSE}
-#initial
+```{r create diet and temp factors, include=FALSE}
 
-initial <- data %>% 
-  filter(time == 0)
+factorise_treatments <- function(data){
+data$tank = as.factor(data$tank)
+unclass(data$tank)
 
-initial_a <- initial %>% filter(temperature == "ambient")
-initial_a_f <- initial_a %>% filter(diet =="formulated")
-initial_a_m <- initial_a %>% filter(diet =="mixed")
-initial_a_u <- initial_a %>% filter(diet =="ulva")
-initial_a_k <- initial_a %>% filter(diet =="kelp")
+data$diet = as.factor(data$diet)
+unclass(data$diet)
 
+data$temperature = as.factor(data$temperature)
+unclass(data$temperature)
 
-initial_w <- initial %>% filter(temperature == "warm")
-initial_w_f <- initial_w %>% filter(diet =="formulated")
-initial_w_m <- initial_w %>% filter(diet =="mixed")
-initial_w_u <- initial_w %>% filter(diet =="ulva")
-initial_w_k <- initial_w %>% filter(diet =="kelp")
+# data$treatment = as.factor(data$treatment)
+# unclass(data$treatment)
+}
 
-
-
-#month 1
-
-m1 <- data %>% 
-  filter(time == 1)
-
-m1_a <- m1 %>% filter(temperature == "ambient")
-m1_a_f <- m1_a %>% filter(diet =="formulated")
-m1_a_m <- m1_a %>% filter(diet =="mixed")
-m1_a_u <- m1_a %>% filter(diet =="ulva")
-m1_a_k <- m1_a %>% filter(diet =="kelp")
-
-
-m1_w <- m1 %>% filter(temperature == "warm")
-m1_w_f <- m1_w %>% filter(diet =="formulated")
-m1_w_m <- m1_w %>% filter(diet =="mixed")
-m1_w_u <- m1_w %>% filter(diet =="ulva")
-m1_w_k <- m1_w %>% filter(diet =="kelp")
-
+factorise_treatments(parechinus_data)
+factorise_treatments(measurement_data)
 
 ```
 
+
+
+###In terms of weight
 ```{r subset data by treatment, echo = FALSE}
+
 fa <- data %>% 
   filter(temperature == "ambient", diet == "formulated")
 
@@ -108,9 +95,1375 @@ kw <- data %>%
 
 ```
 
+
+
+##Descriptive statistics:
+
+
+function for weight:
+```{r message=FALSE, warning=FALSE, include=FALSE}
+urchin_data <- data
+
+descriptive_table_notkelp <- function(data){
+attach(data)
+#########################################
+# Creating a rounded descriptive table
+#########################################
+#** Creating the stats this you need to change
+# Categorical variable
+X = time
+# Numerical variable
+Y = `weight (g)`
+dat = data
+########################################
+
+#*****************************************
+#****This does not change
+Mean = aggregate(Y~X,data=dat,FUN=mean)
+Stdev = aggregate(Y~X,data=dat,FUN=sd)
+Var = aggregate(Y~X,data=dat,FUN=var)
+n = aggregate(Y~X,data=dat,FUN=length)
+
+# Create a table with the aggregated data
+Dstats = data.frame(Mean, Stdev, Var, n)
+Dstats
+#******************************************
+
+###########################################
+# Part you need to change!
+# Number of decimal places to round to 
+###########################################
+# decimals for mean and standard deviation are the same 
+Deci1 = 2   
+# Variance number of decimals twice that of the mean
+Deci2 = 4
+# Naming the Categorical variable
+CatN = "Month"
+# R assigns it's categories alphabetically
+summary(data)
+unclass(data$time)
+data$time = as.factor(data$time)
+unclass(data$time)
+
+#attr(,"levels")
+#[1] "0" "1" "4" "8"
+# Copy the order of the variables EXACTLY
+Catagorical = c("0","1", "2", "3", "4")
+#############################################
+
+#********************************************
+# ***This does not change
+# Creating rounded variables
+# Round Mean & St.dev (g) to the same decimal places 
+DstatsR1 = round(Dstats[,c(2,4)], Deci1)
+# Round the variance  (g^2) to the correct number of decimal places
+DstatsR2 = round(Dstats[,6], Deci2)
+# Sample size
+DstatsR3 = round(Dstats[,8],0)
+
+# Creating a table with the categories 
+#    and the descriptive stats
+Descriptive4 = data.frame(Catagorical, 
+                          DstatsR1, DstatsR2, DstatsR3) 
+#**********************************************
+
+################################################
+# *** Setting up table column headers
+# This needs to change every time 
+# labels:
+
+MeanL = "Mean (g)"
+SdL = "St. dev (g)"
+VarL = "Var (g^2)"
+nL = "n"
+################################################
+
+#**************************************************
+# This part does not need to change
+
+names(Descriptive4) = c(CatN, MeanL, SdL, VarL, nL)
+# Now order the table by ascending Mean for 
+# interpretation
+# Order() -- Tells R you want to sort the data
+# Descriptive$Mean -- Tells what variable in the table you 
+# want to sort it by
+# decreasing = False -- Sort in ascending order
+Descriptive = Descriptive4[order(Descriptive4$Mean,
+                                 decreasing=FALSE),]
+Descriptive
+}
+
+
+descriptive_table_kelp <- function(data){
+attach(data)
+#########################################
+# Creating a rounded descriptive table
+#########################################
+#** Creating the stats this you need to change
+# Categorical variable
+X = time
+# Numerical variable
+Y = `weight (g)`
+dat = data
+########################################
+
+#*****************************************
+#****This does not change
+Mean = aggregate(Y~X,data=dat,FUN=mean)
+Stdev = aggregate(Y~X,data=dat,FUN=sd)
+Var = aggregate(Y~X,data=dat,FUN=var)
+n = aggregate(Y~X,data=dat,FUN=length)
+
+# Create a table with the aggregated data
+Dstats = data.frame(Mean, Stdev, Var, n)
+Dstats
+#******************************************
+
+###########################################
+# Part you need to change!
+# Number of decimal places to round to 
+###########################################
+# decimals for mean and standard deviation are the same 
+Deci1 = 2   
+# Variance number of decimals twice that of the mean
+Deci2 = 4
+# Naming the Categorical variable
+CatN = "Month"
+# R assigns it's categories alphabetically
+summary(data)
+unclass(data$time)
+data$time = as.factor(data$time)
+unclass(data$time)
+
+#attr(,"levels")
+#[1] "0" "1" "4" "8"
+# Copy the order of the variables EXACTLY
+Catagorical = c("0","1", "2")
+#############################################
+
+#********************************************
+# ***This does not change
+# Creating rounded variables
+# Round Mean & St.dev (g) to the same decimal places 
+DstatsR1 = round(Dstats[,c(2,4)], Deci1)
+# Round the variance  (g^2) to the correct number of decimal places
+DstatsR2 = round(Dstats[,6], Deci2)
+# Sample size
+DstatsR3 = round(Dstats[,8],0)
+
+# Creating a table with the categories 
+#    and the descriptive stats
+Descriptive4 = data.frame(Catagorical, 
+                          DstatsR1, DstatsR2, DstatsR3) 
+#**********************************************
+
+################################################
+# *** Setting up table column headers
+# This needs to change every time 
+# labels:
+
+MeanL = "Mean (g)"
+SdL = "St. dev (g)"
+VarL = "Var (g^2)"
+nL = "n"
+################################################
+
+#**************************************************
+# This part does not need to change
+
+names(Descriptive4) = c(CatN, MeanL, SdL, VarL, nL)
+# Now order the table by ascending Mean for 
+# interpretation
+# Order() -- Tells R you want to sort the data
+# Descriptive$Mean -- Tells what variable in the table you 
+# want to sort it by
+# decreasing = False -- Sort in ascending order
+Descriptive = Descriptive4[order(Descriptive4$Mean,
+                                 decreasing=FALSE),]
+Descriptive
+}
+
+
+# fa_weight<- Mean
+# names(fa_weight) <- c("Month", "Mean weight (g)")
+# 
+# fa_weight_mean <- Mean
+# names(fa_weight_mean) <- c("Month", "Mean weight (g)")
+# fa_weight_sd <- Stdev
+# names(fa_weight_sd) <- c("Month", "sd(g)")
+
+```
+
+using function for weight:
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+fa_descriptive <- descriptive_table_notkelp(fa)
+fw_descriptive <- descriptive_table_notkelp(fw)
+ma_descriptive <- descriptive_table_notkelp(ma)
+mw_descriptive <- descriptive_table_notkelp(mw)
+ua_descriptive <- descriptive_table_notkelp(ua)
+uw_descriptive <- descriptive_table_notkelp(uw)
+
+kw_descriptive <- descriptive_table_kelp(kw)
+ka_descriptive <- descriptive_table_kelp(ka)
+
+
+```
+
+
+##Growth calculation - continue here
+
+function for weight growth calculation:
+```{r data_transform_weight_growth}
+data<- parechinus_data
+
+data_transform_weight_growth <- function(data){
+initial_dat <- data %>% 
+  group_by(tank,diet, temperature, treatment) %>% 
+  filter(time == 0) %>% 
+  summarise(T0_weight = round(mean(`weight (g)`), digits = 2),T0_weight_sd = round(sd(`weight (g)`), digits = 2),T0_weight_var = round(var(`weight (g)`), digits = 4),T0_weight_n = length(`weight (g)`))
+
+
+month1_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 1) %>% 
+  summarise(T1_weight = round(mean(`weight (g)`), digits = 2),T1_weight_sd = round(sd(`weight (g)`), digits = 2),T1_weight_var = round(var(`weight (g)`), digits = 4),T1_weight_n = length(`weight (g)`))
+
+month2_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 2) %>% 
+  summarise(T2_weight = round(mean(`weight (g)`), digits = 2),T2_weight_sd = round(sd(`weight (g)`), digits = 2),T2_weight_var = round(var(`weight (g)`), digits = 4),T2_weight_n = length(`weight (g)`))
+
+month3_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 3) %>% 
+  summarise(T3_weight = round(mean(`weight (g)`), digits = 2),T3_weight_sd = round(sd(`weight (g)`), digits = 2),T3_weight_var = round(var(`weight (g)`), digits = 4),T3_weight_n = length(`weight (g)`))
+
+#set kelp tanks weight to zero
+# Find tanks that are only in month4_dat
+kelp_tanks <- setdiff(month2_dat$tank, month3_dat$tank)
+
+# Create a data frame with these tanks and set w_growth to 0
+additional_data_month3 <- data.frame(tank = kelp_tanks,diet = "kelp", T3_weight = 0)
+
+month3_dat <- bind_rows(month3_dat, additional_data_month3)
+
+month4_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 4) %>% 
+  summarise(T4_weight = round(mean(`weight (g)`), digits = 2),T4_weight_sd = round(sd(`weight (g)`), digits = 2),T4_weight_var = round(var(`weight (g)`), digits = 4),T4_weight_n = length(`weight (g)`))
+
+#set kelp tanks weight to zero
+
+# Create a data frame with these tanks and set w_growth to 0
+additional_data_month4 <- data.frame(tank = kelp_tanks,diet = "kelp", T4_weight = 0)
+month4_dat <- bind_rows(month4_dat, additional_data_month4)
+
+  
+growth_dat1 <- left_join(initial_dat, month1_dat, by = "tank") %>% 
+  group_by(tank) %>% 
+  mutate(w_growth1 = T1_weight-T0_weight) %>% distinct()
+
+growth_dat2 <- left_join(month1_dat, month2_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(w_growth2 = T2_weight-T1_weight) %>% distinct()
+
+
+growth_dat3 <- left_join(month2_dat,month3_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(w_growth3 = coalesce(T3_weight-T2_weight,0)) %>%  distinct()
+
+
+
+
+#growth_dat3 <- replace(growth_dat3, is.na(growth_dat3),0)
+
+
+growth_dat4 <- left_join(month3_dat,month4_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(w_growth4 = coalesce(T4_weight - T3_weight, 0)) %>% distinct() %>%mutate(tank = as.numeric(tank)) %>%
+  arrange(tank)
+
+
+
+growth_dat <- data.frame(growth_dat1[,1:4],growth_dat1$w_growth1,growth_dat2$w_growth2, growth_dat3$w_growth3, growth_dat4$w_growth4)
+
+names(growth_dat) <- c("tank", "diet", "temperature", "treatment", "w_growth1", "w_growth2", "w_growth3", "w_growth4")
+
+
+# Setting growth rate 3 to zero for kelp tanks
+tanks_to_set_to_zero <- kelp_tanks
+
+# Use mutate() and ifelse() to change the values
+growth_dat <- growth_dat %>%
+  mutate(w_growth3 = ifelse(tank %in% tanks_to_set_to_zero, 0, w_growth3), w_growth4 = ifelse(tank %in% tanks_to_set_to_zero, 0, w_growth4))
+
+growth_dat <- round(growth_dat[,5:8],digits = 2)
+
+growth_dat <- data.frame(month1_dat[,1:4],growth_dat)
+names(growth_dat) <- c("tank", "diet", "temperature", "treatment", "w_growth1", "w_growth2", "w_growth3", "w_growth4")
+growth_dat
+}
+
+weight_growth_dat <- data_transform_weight_growth(data)
+
+
+```
+
+
+#look for significant differences:
+
+create descriptive tables
+```{r desciptive tables for ANOVA, echo = FALSE }
+#We want to see if weight gain (g) differs between treatments
+
+attach(growth_dat)
+names(growth_dat)
+summary(growth_dat)
+
+unclass(treatment)
+growth_dat$treatment = as.factor(growth_dat$treatment)
+unclass(growth_dat$treatment)
+summary(growth_dat)
+
+dat <- growth_dat
+#growth_period is e.g. w_growth 1
+treatment_weight_growth_table <- function(growth_period){
+
+
+#########################################
+# Creating a rounded descriptive table
+#########################################
+#** Creating the stats this you need to change
+# Categorical variable
+X = treatment
+# Numerical variable
+Y = growth_period
+data = growth_dat
+########################################
+
+#*****************************************
+#****This does not change
+Mean = aggregate(Y~X,data=dat,FUN=mean)
+Stdev = aggregate(Y~X,data=dat,FUN=sd)
+Var = aggregate(Y~X,data=dat,FUN=var)
+n = aggregate(Y~X,data=dat,FUN=length)
+
+# Create a table with the aggregated data
+Dstats = data.frame(Mean, Stdev, Var, n)
+Dstats
+#******************************************
+
+###########################################
+# Part you need to change!
+# Number of decimal places to round to 
+###########################################
+# decimals for mean and standard deviation are the same 
+Deci1 = 3   
+# Variance number of decimals twice that of the mean
+Deci2 = 6
+# Naming the Categorical variable
+CatN = "Treatments"
+# R assigns it's categories alphabetically
+summary(dat)
+unclass(dat$treatment)
+#attr(,"levels")
+#[1] "A" "B" "C" "D" "E"
+# Copy the order of the variables EXACTLY
+Catagorical = c("FA","FW","KA","KW","MA", "MW", "UA", "UW")
+#############################################
+
+#********************************************
+# ***This does not change
+# Creating rounded variables
+# Round Mean & St.dev (g) to the same decimal places 
+DstatsR1 = round(Dstats[,c(2,4)], Deci1)
+# Round the variance  (g^2) to the correct number of decimal places
+DstatsR2 = round(Dstats[,6], Deci2)
+# Sample size
+DstatsR3 = round(Dstats[,8],0)
+
+# Creating a table with the categories 
+#    and the descriptive stats
+Descriptive4 = data.frame(Catagorical, 
+                          DstatsR1, DstatsR2, DstatsR3) 
+#**********************************************
+
+################################################
+# *** Setting up table column headers
+# This needs to change every time 
+# labels:
+MeanL = "Mean (g)"
+SdL = "St. dev (g)"
+VarL = "Var (g^2)"
+nL = "n"
+################################################
+
+#**************************************************
+# This part does not need to change
+names(Descriptive4) = c(CatN, MeanL, SdL, VarL, nL)
+# Now order the table by ascending Mean for 
+# interpretation
+# Order() --> Tells R you want to sort the data
+# Descriptive$Mean --> Tells what variable in the table you 
+# want to sort it by
+# decreasing = False --> Sort in ascending order
+Descriptive = Descriptive4[order(Descriptive4$Mean,
+                                 decreasing=FALSE),]
+Descriptive
+
+
+}
+
+dat_w_growth1<- treatment_weight_growth_table(w_growth1)
+dat_w_growth2<- treatment_weight_growth_table(w_growth2)
+dat_w_growth3<- treatment_weight_growth_table(w_growth3)
+dat_w_growth4<- treatment_weight_growth_table(w_growth4)
+
+#write.table(dat_w_growth3,"clipboard", sep = "\t")
+
+#******************************************************
+
+# Table 1.  Descriptive statistics for body weights (g) for each
+#           of the five different Islands where the mean, standard
+#           deviation (St.dev), Variance (Var) and sample size (n).
+        # Island  Mean(g)  St. dev(g)    Var(g^2)    n
+        #5      E 38.47    6.74           45.4033    40
+        #1      A 42.38    7.27           52.8032    40
+        #2      B 53.98    7.17           51.4261    40
+        #4      D 54.30    7.27           52.8269    40
+        #3      C 54.74    7.24           52.4738    40
+
+
+
+#** Question: Is there a difference in Weight 
+#    between the treatments
+
+
+```
+
+
+
+boxplots 
+
+```{r}
+# data exploration using a box plot
+
+#growth_period is e.g. w_growth 1
+
+treatment_weight_growth_boxplot <- function(growth_period){
+#** Visualizing what the data look like
+ylab="Weight difference (g)"
+xlab="Treatments"
+par(las = 1)
+boxplot(growth_period~treatment, data=dat, 
+        ylab=ylab, 
+        xlab=xlab, col= c("red", "red", "yellow", "yellow", "blue", "blue", "green", "green"))
+legend("bottomright", c("IQR","Median","Outlier"), 
+       pch=c(22,15,1), bty="n")
+}
+
+
+treatment_weight_growth_boxplot(w_growth1)
+treatment_weight_growth_boxplot(w_growth2)
+treatment_weight_growth_boxplot(w_growth3)
+treatment_weight_growth_boxplot(w_growth4)
+
+#** You have more than two levels and continuous data
+#** So do ANOVA or Kruskal Wallis 
+#   Either test assumptions beforehand or fit ANOVA
+#   and test assumptions after.
+
+#><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>
+```
+
+
+
+#ANOVA or Kruskal Wallis:
+Run ANOVA, then check assumptions, if not met, do Kruskal Wallis
+```{r check ANOVA assumptions}
+#*** run an ANOVA using the aov function
+#*** First fit the model to check the assumptions
+#**Then see if there is a difference between or among groups
+
+
+# H0: muE = muA = muB = muD = muC 
+      #(The mean weights are the same on each island)
+# H1: the mean weights are not the same on each island
+# alpha = 0.05
+#Anova = aov(numerical~Categorical, data = dat)
+
+
+anova_and_modelval <- function(growth_period){
+anova1 <- aov(growth_period~diet*temperature,data=dat)
+#model validation graphs
+res <- residuals(anova1)
+## Now pull out your fitted values
+yfit <- fitted.values(anova1)
+
+xlab1="Predicted values (g)"
+ylab1="Residuals (g)"
+par(mfrow=c(1,3),mex=0.8, las = 1, mai = c(0.5,0.5,0.5,0.1))
+## Looking at the spread of the residuals to check Variances. 
+##   Remember to add units to both labels 
+plot(yfit,res,xlab=xlab1,ylab=ylab1)
+abline(0,0,lty=3)
+legend ("topleft", expression(bold("a")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+### Looking at Normality.  Remember to add units to the 
+###   residual label
+qqnorm(res,main="Model Validation")
+qqline(res)
+legend ("topleft", expression(bold("b")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+hist(res,main= "",xlab=ylab1)
+legend ("topleft", expression(bold("c")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+}
+
+#look at model validation before continuing
+# Look at the model validation Figures to check the 
+# assumptions
+#Figure a checks the assumption of equal variance, 
+#   if the spread of the residuals is similar 
+#   above and below the line and there is no 
+#   pattern in the residuals the variances are 
+#   similar.
+#Figure b-c checks the assumption of a normal 
+#  distribution, if the points for the residuals 
+#  in Figure b follow close to the line the data 
+#  are normal.  If the histogram in Figure c has the 
+#  bell shaped curve the data are normally distributed
+
+#So if the assumptions are met, use the ANOVA results; 
+  #if the data are not normal do a Kruskal Wallis
+anova_and_modelval(w_growth1) #looks okay
+anova_and_modelval(w_growth2) #spread of residuals has pattern,can I remove kelp?
+anova_and_modelval(w_growth3) #residuals not normally distributed, try without kelp?
+anova_and_modelval(w_growth4) #doesn't look too bad, odd pattern in b where it doesn't follow the line but otherwise looks normal, still think should try without kelp
+
+anova1 <- aov(w_growth2~diet*temperature,data=dat)
+summary(anova1)
+
+```
+
+Removing kelp for growth period 2 to 4
+This function isn't really working, I did it manually for the growth periods 2-4
+```{r ANOVA without kelp}
+
+growth_dat_no_kelp <- growth_dat %>% filter(diet!= "kelp")
+dat <- growth_dat_no_kelp
+
+no_kelp_anova_and_modelval <- function(growth_period){
+anova1 <- aov(w_growth4~diet*temperature,data=growth_dat_no_kelp)
+#model validation graphs
+res <- residuals(anova1)
+## Now pull out your fitted values
+yfit <- fitted.values(anova1)
+
+xlab1="Predicted values (g)"
+ylab1="Residuals (g)"
+par(mfrow=c(1,3),mex=0.8, las = 1, mai = c(0.5,0.5,0.5,0.1))
+## Looking at the spread of the residuals to check Variances. 
+##   Remember to add units to both labels 
+plot(yfit,res,xlab=xlab1,ylab=ylab1)
+abline(0,0,lty=3)
+legend ("topleft", expression(bold("a")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+### Looking at Normality.  Remember to add units to the 
+###   residual label
+qqnorm(res,main="Model Validation")
+qqline(res)
+legend ("topleft", expression(bold("b")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+hist(res,main= "",xlab=ylab1)
+legend ("topleft", expression(bold("c")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+}
+
+summary(anova1)
+
+no_kelp_anova_and_modelval(w_growth2)
+anova_and_modelval(w_growth3) 
+anova_and_modelval(w_growth4)
+```
+
+
+```{r check ANOVA results}
+anova_results <- function(growth_period){
+anova1 <- aov(growth_period~treatment,data=dat)
+summary(anova1)
+}
+
+#growth period 1
+aov_wgrowth1<- anova_results(w_growth1)
+
+```
+
+```{r ANOVA post hoc tukey}
+#look at line 2014 of part2_statistical tests....
+```
+
+
+
+###In terms of size
+```{r subset data by treatment, echo = FALSE}
+data <- measurement_data
+fa <- data %>% 
+  filter(temperature == "ambient", diet == "formulated")
+
+fw <- data %>% 
+  filter(temperature == "warm", diet == "formulated") 
+
+ma <- data %>% 
+  filter(temperature == "ambient", diet == "mixed")
+
+mw <- data %>% 
+  filter(temperature == "warm", diet == "mixed")
+
+ua <- data %>% 
+  filter(temperature == "ambient", diet == "ulva")
+
+uw <- data %>% 
+  filter(temperature == "warm", diet == "ulva")
+
+ka <- data %>% 
+  filter(temperature == "ambient", diet == "kelp")
+
+kw <- data %>% 
+  filter(temperature == "warm", diet == "kelp")
+
+
+```
+
+
+
+##Descriptive statistics:
+
+
+function for size:
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+
+size_descriptive_table_notkelp <- function(data){
+attach(data)
+#########################################
+# Creating a rounded descriptive table
+#########################################
+#** Creating the stats this you need to change
+# Categorical variable
+X = time
+# Numerical variable
+Y = diam
+dat = data
+########################################
+
+#*****************************************
+#****This does not change
+Mean = aggregate(Y~X,data=dat,FUN=mean)
+Stdev = aggregate(Y~X,data=dat,FUN=sd)
+Var = aggregate(Y~X,data=dat,FUN=var)
+n = aggregate(Y~X,data=dat,FUN=length)
+
+# Create a table with the aggregated data
+Dstats = data.frame(Mean, Stdev, Var, n)
+Dstats
+#******************************************
+
+###########################################
+# Part you need to change!
+# Number of decimal places to round to 
+###########################################
+# decimals for mean and standard deviation are the same 
+Deci1 = 2   
+# Variance number of decimals twice that of the mean
+Deci2 = 4
+# Naming the Categorical variable
+CatN = "Month"
+# R assigns it's categories alphabetically
+summary(data)
+unclass(data$time)
+data$time = as.factor(data$time)
+unclass(data$time)
+
+#attr(,"levels")
+#[1] "0" "1" "4" "8"
+# Copy the order of the variables EXACTLY
+Catagorical = c("0","1", "2", "3", "4")
+#############################################
+
+#********************************************
+# ***This does not change
+# Creating rounded variables
+# Round Mean & St.dev (g) to the same decimal places 
+DstatsR1 = round(Dstats[,c(2,4)], Deci1)
+# Round the variance  (g^2) to the correct number of decimal places
+DstatsR2 = round(Dstats[,6], Deci2)
+# Sample size
+DstatsR3 = round(Dstats[,8],0)
+
+# Creating a table with the categories 
+#    and the descriptive stats
+Descriptive4 = data.frame(Catagorical, 
+                          DstatsR1, DstatsR2, DstatsR3) 
+#**********************************************
+
+################################################
+# *** Setting up table column headers
+# This needs to change every time 
+# labels:
+
+MeanL = "Mean (cm)"
+SdL = "St. dev (cm)"
+VarL = "Var (cm^2)"
+nL = "n"
+################################################
+
+#**************************************************
+# This part does not need to change
+
+names(Descriptive4) = c(CatN, MeanL, SdL, VarL, nL)
+# Now order the table by ascending Mean for 
+# interpretation
+# Order() -- Tells R you want to sort the data
+# Descriptive$Mean -- Tells what variable in the table you 
+# want to sort it by
+# decreasing = False -- Sort in ascending order
+Descriptive = Descriptive4[order(Descriptive4$Mean,
+                                 decreasing=FALSE),]
+Descriptive
+}
+
+
+size_descriptive_table_kelp <- function(data){
+attach(data)
+#########################################
+# Creating a rounded descriptive table
+#########################################
+#** Creating the stats this you need to change
+# Categorical variable
+X = time
+# Numerical variable
+Y = diam
+dat = data
+########################################
+
+#*****************************************
+#****This does not change
+Mean = aggregate(Y~X,data=dat,FUN=mean)
+Stdev = aggregate(Y~X,data=dat,FUN=sd)
+Var = aggregate(Y~X,data=dat,FUN=var)
+n = aggregate(Y~X,data=dat,FUN=length)
+
+# Create a table with the aggregated data
+Dstats = data.frame(Mean, Stdev, Var, n)
+Dstats
+#******************************************
+
+###########################################
+# Part you need to change!
+# Number of decimal places to round to 
+###########################################
+# decimals for mean and standard deviation are the same 
+Deci1 = 2   
+# Variance number of decimals twice that of the mean
+Deci2 = 4
+# Naming the Categorical variable
+CatN = "Month"
+# R assigns it's categories alphabetically
+summary(data)
+unclass(data$time)
+data$time = as.factor(data$time)
+unclass(data$time)
+
+#attr(,"levels")
+#[1] "0" "1" "4" "8"
+# Copy the order of the variables EXACTLY
+Catagorical = c("0","1", "2")
+#############################################
+
+#********************************************
+# ***This does not change
+# Creating rounded variables
+# Round Mean & St.dev (g) to the same decimal places 
+DstatsR1 = round(Dstats[,c(2,4)], Deci1)
+# Round the variance  (g^2) to the correct number of decimal places
+DstatsR2 = round(Dstats[,6], Deci2)
+# Sample size
+DstatsR3 = round(Dstats[,8],0)
+
+# Creating a table with the categories 
+#    and the descriptive stats
+Descriptive4 = data.frame(Catagorical, 
+                          DstatsR1, DstatsR2, DstatsR3) 
+#**********************************************
+
+################################################
+# *** Setting up table column headers
+# This needs to change every time 
+# labels:
+
+MeanL = "Mean (cm)"
+SdL = "St. dev (cm)"
+VarL = "Var (cm^2)"
+nL = "n"
+################################################
+
+#**************************************************
+# This part does not need to change
+
+names(Descriptive4) = c(CatN, MeanL, SdL, VarL, nL)
+# Now order the table by ascending Mean for 
+# interpretation
+# Order() -- Tells R you want to sort the data
+# Descriptive$Mean -- Tells what variable in the table you 
+# want to sort it by
+# decreasing = False -- Sort in ascending order
+Descriptive = Descriptive4[order(Descriptive4$Mean,
+                                 decreasing=FALSE),]
+Descriptive
+}
+
+
+# fa_weight<- Mean
+# names(fa_weight) <- c("Month", "Mean weight (g)")
+# 
+# fa_weight_mean <- Mean
+# names(fa_weight_mean) <- c("Month", "Mean weight (g)")
+# fa_weight_sd <- Stdev
+# names(fa_weight_sd) <- c("Month", "sd(g)")
+
+```
+
+using function for size:
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+fa_descriptive_size <- size_descriptive_table_notkelp(fa)
+fw_descriptive_size <- size_descriptive_table_notkelp(fw)
+ma_descriptive_size <- size_descriptive_table_notkelp(ma)
+mw_descriptive_size <- size_descriptive_table_notkelp(mw)
+ua_descriptive_size <- size_descriptive_table_notkelp(ua)
+uw_descriptive_size <- size_descriptive_table_notkelp(uw)
+
+kw_descriptive_size <- size_descriptive_table_kelp(kw)
+ka_descriptive_size <- size_descriptive_table_kelp(ka)
+
+write.table(ka_descriptive_size,"clipboard", sep = "\t")
+```
+
+
+##Growth calculation - continue here
+
+function for size growth calculation:
+```{r data_transform_weight_growth}
+data<- measurement_data
+
+data_transform_size_growth <- function(data){
+initial_dat <- data %>% 
+  group_by(tank,diet, temperature) %>% 
+  filter(time == 0) %>% 
+  summarise(T0_size = round(mean(diam), digits = 2),T0_size_sd = round(sd(diam), digits = 2),T0_size_var = round(var(diam), digits = 4),T0_size_n = length(diam))
+
+
+month1_dat <- data %>% 
+  group_by(tank, diet, temperature) %>% 
+  filter(time == 1) %>% 
+  summarise(T1_size = round(mean(diam), digits = 2),T1_size_sd = round(sd(diam), digits = 2),T1_size_var = round(var(diam), digits = 4),T1_size_n = length(diam))
+
+month2_dat <- data %>% 
+  group_by(tank, diet, temperature) %>% 
+  filter(time == 2) %>% 
+  summarise(T2_size = round(mean(diam), digits = 2),T2_size_sd = round(sd(diam), digits = 2),T2_size_var = round(var(diam), digits = 4),T2_size_n = length(diam))
+
+month3_dat <- data %>% 
+  group_by(tank, diet, temperature) %>% 
+  filter(time == 3) %>% 
+  summarise(T3_size = round(mean(diam), digits = 2),T3_size_sd = round(sd(diam), digits = 2),T3_size_var = round(var(diam), digits = 4),T3_size_n = length(diam))
+
+#set kelp tanks size to zero
+# Find tanks that are only in month4_dat
+kelp_tanks <- setdiff(month2_dat$tank, month3_dat$tank)
+
+# Create a data frame with these tanks and set s_growth to 0
+additional_data_month3 <- data.frame(tank = kelp_tanks,diet = "kelp", T3_size = 0)
+
+month3_dat <- bind_rows(month3_dat, additional_data_month3)
+
+month4_dat <- data %>% 
+  group_by(tank, diet, temperature) %>% 
+  filter(time == 4) %>% 
+  summarise(T4_size = round(mean(diam), digits = 2),T4_size_sd = round(sd(diam), digits = 2),T4_size_var = round(var(diam), digits = 4),T4_size_n = length(diam))
+
+#set kelp tanks size to zero
+
+# Create a data frame with these tanks and set s_growth to 0
+additional_data_month4 <- data.frame(tank = kelp_tanks,diet = "kelp", T4_size = 0)
+month4_dat <- bind_rows(month4_dat, additional_data_month4)
+
+  
+growth_dat1 <- left_join(initial_dat, month1_dat, by = "tank") %>% 
+  group_by(tank) %>% 
+  mutate(s_growth1 = T1_size-T0_size) %>% distinct()
+
+growth_dat2 <- left_join(month1_dat, month2_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(s_growth2 = T2_size-T1_size) %>% distinct()
+
+
+growth_dat3 <- left_join(month2_dat,month3_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(s_growth3 = coalesce(T3_size-T2_size,0)) %>%  distinct()
+
+
+
+
+#growth_dat3 <- replace(growth_dat3, is.na(growth_dat3),0)
+
+
+growth_dat4 <- left_join(month3_dat,month4_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(s_growth4 = coalesce(T4_size - T3_size, 0)) %>% distinct() %>%mutate(tank = as.numeric(tank)) %>%
+  arrange(tank)
+
+
+
+growth_dat <- data.frame(growth_dat1[,1:3],growth_dat1$s_growth1,growth_dat2$s_growth2, growth_dat3$s_growth3, growth_dat4$s_growth4)
+
+names(growth_dat) <- c("tank", "diet", "temperature", "s_growth1", "s_growth2", "s_growth3", "s_growth4")
+
+
+# Setting growth rate 3 to zero for kelp tanks
+tanks_to_set_to_zero <- kelp_tanks
+
+# Use mutate() and ifelse() to change the values
+growth_dat <- growth_dat %>%
+  mutate(s_growth3 = ifelse(tank %in% tanks_to_set_to_zero, 0, s_growth3), s_growth4 = ifelse(tank %in% tanks_to_set_to_zero, 0, s_growth4))
+
+growth_dat <- round(growth_dat[,4:7],digits = 2)
+
+growth_dat <- data.frame(month1_dat[,1:3],growth_dat)
+names(growth_dat) <- c("tank", "diet", "temperature", "s_growth1", "s_growth2", "s_growth3", "s_growth4")
+growth_dat
+}
+
+size_growth_dat <- data_transform_size_growth(data)
+
+
+```
+
+
+#look for significant differences:
+
+create descriptive tables
+```{r desciptive tables for ANOVA, echo = FALSE }
+#We want to see if weight gain (g) differs between treatments
+
+size_growth_dat$treatment <- weight_growth_dat$treatment
+
+
+attach(size_growth_dat)
+names(size_growth_dat)
+summary(size_growth_dat)
+
+unclass(treatment)
+size_growth_dat$treatment = as.factor(size_growth_dat$treatment)
+unclass(size_growth_dat$treatment)
+summary(size_growth_dat)
+
+dat <- size_growth_dat
+#growth_period is e.g. w_growth 1
+treatment_size_growth_table <- function(growth_period){
+
+
+#########################################
+# Creating a rounded descriptive table
+#########################################
+#** Creating the stats this you need to change
+# Categorical variable
+X = treatment
+# Numerical variable
+Y = growth_period
+data = size_growth_dat
+########################################
+
+#*****************************************
+#****This does not change
+Mean = aggregate(Y~X,data=dat,FUN=mean)
+Stdev = aggregate(Y~X,data=dat,FUN=sd)
+Var = aggregate(Y~X,data=dat,FUN=var)
+n = aggregate(Y~X,data=dat,FUN=length)
+
+# Create a table with the aggregated data
+Dstats = data.frame(Mean, Stdev, Var, n)
+Dstats
+#******************************************
+
+###########################################
+# Part you need to change!
+# Number of decimal places to round to 
+###########################################
+# decimals for mean and standard deviation are the same 
+Deci1 = 3   
+# Variance number of decimals twice that of the mean
+Deci2 = 6
+# Naming the Categorical variable
+CatN = "Treatments"
+# R assigns it's categories alphabetically
+summary(dat)
+unclass(dat$treatment)
+#attr(,"levels")
+#[1] "A" "B" "C" "D" "E"
+# Copy the order of the variables EXACTLY
+Catagorical = c("FA","FW","KA","KW","MA", "MW", "UA", "UW")
+#############################################
+
+#********************************************
+# ***This does not change
+# Creating rounded variables
+# Round Mean & St.dev (g) to the same decimal places 
+DstatsR1 = round(Dstats[,c(2,4)], Deci1)
+# Round the variance  (g^2) to the correct number of decimal places
+DstatsR2 = round(Dstats[,6], Deci2)
+# Sample size
+DstatsR3 = round(Dstats[,8],0)
+
+# Creating a table with the categories 
+#    and the descriptive stats
+Descriptive4 = data.frame(Catagorical, 
+                          DstatsR1, DstatsR2, DstatsR3) 
+#**********************************************
+
+################################################
+# *** Setting up table column headers
+# This needs to change every time 
+# labels:
+MeanL = "Mean (cm)"
+SdL = "St. dev (cm)"
+VarL = "Var (cm^2)"
+nL = "n"
+################################################
+
+#**************************************************
+# This part does not need to change
+names(Descriptive4) = c(CatN, MeanL, SdL, VarL, nL)
+# Now order the table by ascending Mean for 
+# interpretation
+# Order() --> Tells R you want to sort the data
+# Descriptive$Mean --> Tells what variable in the table you 
+# want to sort it by
+# decreasing = False --> Sort in ascending order
+Descriptive = Descriptive4[order(Descriptive4$Mean,
+                                 decreasing=FALSE),]
+Descriptive
+
+
+}
+
+dat_s_growth1<- treatment_size_growth_table(s_growth1)
+dat_s_growth2<- treatment_size_growth_table(s_growth2)
+dat_s_growth3<- treatment_size_growth_table(s_growth3)
+dat_s_growth4<- treatment_size_growth_table(s_growth4)
+
+#write.table(dat_w_growth3,"clipboard", sep = "\t")
+
+#******************************************************
+
+# Table 1.  Descriptive statistics for body weights (g) for each
+#           of the five different Islands where the mean, standard
+#           deviation (St.dev), Variance (Var) and sample size (n).
+        # Island  Mean(g)  St. dev(g)    Var(g^2)    n
+        #5      E 38.47    6.74           45.4033    40
+        #1      A 42.38    7.27           52.8032    40
+        #2      B 53.98    7.17           51.4261    40
+        #4      D 54.30    7.27           52.8269    40
+        #3      C 54.74    7.24           52.4738    40
+
+
+
+#** Question: Is there a difference in Weight 
+#    between the treatments
+
+
+```
+
+
+
+boxplots 
+
+```{r}
+# data exploration using a box plot
+
+#growth_period is e.g. w_growth 1
+
+treatment_size_growth_boxplot <- function(growth_period){
+#** Visualizing what the data look like
+ylab="Size difference (cm)"
+xlab="Treatments"
+par(las = 1)
+boxplot(growth_period~treatment, data=dat, 
+        ylab=ylab, 
+        xlab=xlab, col= c("red", "red", "yellow", "yellow", "blue", "blue", "green", "green"))
+legend("topleft", c("IQR","Median","Outlier"), 
+       pch=c(22,15,1), bty="n")
+}
+
+
+treatment_size_growth_boxplot(s_growth1)
+treatment_size_growth_boxplot(s_growth2)
+treatment_size_growth_boxplot(s_growth3)
+treatment_size_growth_boxplot(s_growth4)
+
+#** You have more than two levels and continuous data
+#** So do ANOVA or Kruskal Wallis 
+#   Either test assumptions beforehand or fit ANOVA
+#   and test assumptions after.
+
+#><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>
+```
+
+
+
+#ANOVA or Kruskal Wallis:
+Run ANOVA, then check assumptions, if not met, do Kruskal Wallis
+```{r check ANOVA assumptions}
+#*** run an ANOVA using the aov function
+#*** First fit the model to check the assumptions
+#**Then see if there is a difference between or among groups
+
+
+# H0: muE = muA = muB = muD = muC 
+      #(The mean weights are the same on each island)
+# H1: the mean weights are not the same on each island
+# alpha = 0.05
+#Anova = aov(numerical~Categorical, data = dat)
+
+
+anova_and_modelval <- function(growth_period){
+anova1 <- aov(growth_period~diet*temperature,data=dat)
+#model validation graphs
+res <- residuals(anova1)
+## Now pull out your fitted values
+yfit <- fitted.values(anova1)
+
+xlab1="Predicted values (g)"
+ylab1="Residuals (g)"
+par(mfrow=c(1,3),mex=0.8, las = 1, mai = c(0.5,0.5,0.5,0.1))
+## Looking at the spread of the residuals to check Variances. 
+##   Remember to add units to both labels 
+plot(yfit,res,xlab=xlab1,ylab=ylab1)
+abline(0,0,lty=3)
+legend ("topleft", expression(bold("a")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+### Looking at Normality.  Remember to add units to the 
+###   residual label
+qqnorm(res,main="Model Validation")
+qqline(res)
+legend ("topleft", expression(bold("b")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+hist(res,main= "",xlab=ylab1)
+legend ("topleft", expression(bold("c")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+}
+
+#look at model validation before continuing
+# Look at the model validation Figures to check the 
+# assumptions
+#Figure a checks the assumption of equal variance, 
+#   if the spread of the residuals is similar 
+#   above and below the line and there is no 
+#   pattern in the residuals the variances are 
+#   similar.
+#Figure b-c checks the assumption of a normal 
+#  distribution, if the points for the residuals 
+#  in Figure b follow close to the line the data 
+#  are normal.  If the histogram in Figure c has the 
+#  bell shaped curve the data are normally distributed
+
+#So if the assumptions are met, use the ANOVA results; 
+  #if the data are not normal do a Kruskal Wallis
+anova_and_modelval(w_growth1) #looks okay
+anova_and_modelval(w_growth2) #spread of residuals has pattern,can I remove kelp?
+anova_and_modelval(w_growth3) #residuals not normally distributed, try without kelp?
+anova_and_modelval(w_growth4) #doesn't look too bad, odd pattern in b where it doesn't follow the line but otherwise looks normal, still think should try without kelp
+
+anova1 <- aov(w_growth2~diet*temperature,data=dat)
+summary(anova1)
+
+```
+
+Removing kelp for growth period 2 to 4
+This function isn't really working, I did it manually for the growth periods 2-4
+```{r ANOVA without kelp}
+
+growth_dat_no_kelp <- growth_dat %>% filter(diet!= "kelp")
+dat <- growth_dat_no_kelp
+
+no_kelp_anova_and_modelval <- function(growth_period){
+anova1 <- aov(w_growth4~diet*temperature,data=growth_dat_no_kelp)
+#model validation graphs
+res <- residuals(anova1)
+## Now pull out your fitted values
+yfit <- fitted.values(anova1)
+
+xlab1="Predicted values (g)"
+ylab1="Residuals (g)"
+par(mfrow=c(1,3),mex=0.8, las = 1, mai = c(0.5,0.5,0.5,0.1))
+## Looking at the spread of the residuals to check Variances. 
+##   Remember to add units to both labels 
+plot(yfit,res,xlab=xlab1,ylab=ylab1)
+abline(0,0,lty=3)
+legend ("topleft", expression(bold("a")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+### Looking at Normality.  Remember to add units to the 
+###   residual label
+qqnorm(res,main="Model Validation")
+qqline(res)
+legend ("topleft", expression(bold("b")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+hist(res,main= "",xlab=ylab1)
+legend ("topleft", expression(bold("c")), 
+        x.intersp = 0, bty = "n", 
+        cex = 1.3)
+}
+
+summary(anova1)
+
+no_kelp_anova_and_modelval(w_growth2)
+anova_and_modelval(w_growth3) 
+anova_and_modelval(w_growth4)
+```
+
+
+```{r check ANOVA results}
+anova_results <- function(growth_period){
+anova1 <- aov(growth_period~treatment,data=dat)
+summary(anova1)
+}
+
+#growth period 1
+aov_wgrowth1<- anova_results(w_growth1)
+
+```
+
+```{r ANOVA post hoc tukey}
+#look at line 2014 of part2_statistical tests....
+```
+
+
+
+
+
+
+```{r}
+growth_table <- function(treatment){
+treatment_growth <- treatment
+treatment_growth <- treatment %>% 
+  group_by(tank)%>% 
+  mutate(w_growth = `weight (g)` -lag(`Mean weight (g)`))
+treatment_growth[is.na(treatment_growth)] <- 0
+
+#treatment_growth$w_growth <- c(0,(treatment[2,2]-treatment[1,2]),(treatment[3,2]-treatment[2,2]), (treatment[4,2]-treatment[3,2]), (treatment[5,2]-treatment[4,2]))
+
+treatment_growth
+}
+
+ua_weight_growth <- growth_table(ua_weight)
+ua_weight_growth <- growth_table(ua_weight)
+```
+
+
+
+
+general plots
+```{r}
+plot(t0$treatment, fa$`weight (g)`, xlab = "Time (months)", ylab = "Urchin weight (g)")
+```
+
+
+
+plots
+```{r}
+
+plot(data$ , uw, xlab = "Shell length (mm)", 
+     ylab = "Shell width (mm)", col = "blue", main = "All data")
+points(c_gdat$Length, c_gdat$Width, col = "red")
+legend("bottomright", c("Treatment", "Control"), col = c("blue", "red"), pch = c(21,21), bty = "n")
+```
+
+
+
 A function is used to transform the data and calculate somatic growth rate in terms of weight gain & size increase.
 
 ```{r function, echo=FALSE}
+data_transform_weight <- function(data){
+initial_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 0) %>% 
+  summarise(diet = diet, temperature = temperature, T0_weight = mean(`weight (g)`)) 
+
+
+month1_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 1) %>% 
+  summarise(T1_weight = mean(`weight (g)`))
+
+month2_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 2) %>% 
+  summarise(T2_weight = mean(`weight (g)`))
+
+month3_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 3) %>% 
+  summarise(T3_weight = mean(`weight (g)`))
+
+month4_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 4) %>% 
+  summarise(T4_weight = mean(`weight (g)`))
+
+  
+growth_dat1 <- initial_dat %>% left_join(month1_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T1_weight-T0_weight) %>% distinct()
+
+growth_dat2 <- month1_dat %>% left_join(month2_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T2_weight-T1_weight) %>% distinct()
+
+growth_dat3 <- month2_dat %>% left_join(month3_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T3_weight-T2_weight) %>% distinct()
+
+growth_dat4 <- month3_dat %>% left_join(month4_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T4_weight-T3_weight) %>% distinct()
+
+growth_dat1
+growth_dat2
+growth_dat3
+growth_dat4
+}
+weight_growth <- data_transform_weight(data)
+
+write.csv(weight_growth, "weight_growth_data.csv", row.names = FALSE)
+
+```
+
+
+```{r function, echo=FALSE}
+
+#want to use this when my size data has been captured
+
 data_transform_somatic <- function(data){
 initial_dat <- data %>% 
   group_by(tank) %>% 
@@ -122,13 +1475,43 @@ month1_dat <- data %>%
   group_by(tank) %>% 
   filter(time == 1) %>% 
   summarise(T1_weight = mean(`weight (g)`), T1_size = mean(diam_ave))
-  
 
+month2_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 2) %>% 
+  summarise(T2_weight = mean(`weight (g)`), T2_size = mean(diam_ave))
+
+month3_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 3) %>% 
+  summarise(T3_weight = mean(`weight (g)`), T3_size = mean(diam_ave))
+
+month4_dat <- data %>% 
+  group_by(tank) %>% 
+  filter(time == 4) %>% 
+  summarise(T4_weight = mean(`weight (g)`), T4_size = mean(diam_ave))
+
+  
 growth_dat1 <- initial_dat %>% left_join(month1_dat,by = "tank") %>% 
   group_by(tank, diet, temperature) %>% 
   mutate(w_growth = T1_weight-T0_weight, s_growth = T1_size - T0_size) %>% distinct()
 
+growth_dat2 <- month1_dat %>% left_join(month2_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T2_weight-T1_weight, s_growth = T2_size - T1_size) %>% distinct()
+
+growth_dat3 <- month2_dat %>% left_join(month3_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T3_weight-T2_weight, s_growth = T3_size - T2_size) %>% distinct()
+
+growth_dat4 <- month3_dat %>% left_join(month4_dat,by = "tank") %>% 
+  group_by(tank, diet, temperature) %>% 
+  mutate(w_growth = T4_weight-T3_weight, s_growth = T4_size - T3_size) %>% distinct()
+
 growth_dat1
+growth_dat2
+growth_dat3
+growth_dat4
 }
 somatic_growth <- data_transform_somatic(data)
 
@@ -179,6 +1562,106 @@ size_growth_plot <- ggplot(somatic_growth, aes(x = diet, y = s_growth, fill = as
 print(size_growth_plot)
 
 ```
+
+```{r subset data by time, echo = FALSE}
+t0<- data %>% 
+  filter(time == "0")
+
+t1<- data %>% 
+  filter(time == "1")
+
+t2<- data %>% 
+  filter(time == "2")
+
+t3<- data %>% 
+  filter(time == "3")
+
+t4<- data %>% 
+  filter(time == "4")
+```
+
+```{r subset treatment by time}
+
+#formulated ambient
+fa_1 <- fa %>% 
+  filter(time == "1")
+
+fa_2 <- fa %>% 
+  filter(time == "2")
+
+fa_3 <- fa %>% 
+  filter(time == "3")
+
+fa_4 <- fa %>% 
+  filter(time == "4")
+
+#formulated warm
+fw_1 <- fw %>% 
+  filter(time == "1")
+
+fw_2 <- fw %>% 
+  filter(time == "2")
+
+fw_3 <- fw %>% 
+  filter(time == "3")
+
+fw_4 <- fw %>% 
+  filter(time == "4")
+
+#mixed ambient
+ma_1 <- ma %>% 
+  filter(time == "1")
+
+ma_2 <- ma %>% 
+  filter(time == "2")
+
+ma_3 <- ma %>% 
+  filter(time == "3")
+
+ma_4 <- ma %>% 
+  filter(time == "4")
+
+#mixed warm
+mw_1 <- mw %>% 
+  filter(time == "1")
+
+mw_2 <- mw %>% 
+  filter(time == "2")
+
+mw_3 <- mw %>% 
+  filter(time == "3")
+
+mw_4 <- mw %>% 
+  filter(time == "4")
+
+#ulva ambient
+ua_1 <- ua %>% 
+  filter(time == "1")
+
+ua_2 <- ua %>% 
+  filter(time == "2")
+
+ua_3 <- ua %>% 
+  filter(time == "3")
+
+ua_4 <- ua %>% 
+  filter(time == "4")
+
+#ulva warm
+uw_1 <- uw %>% 
+  filter(time == "1")
+
+uw_2 <- uw %>% 
+  filter(time == "2")
+
+uw_3 <- uw %>% 
+  filter(time == "3")
+
+uw_4 <- uw %>% 
+  filter(time == "4")
+
+```
+
 
 2.  **Feed Conversion Ratio**
 
