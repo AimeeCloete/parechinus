@@ -65,8 +65,10 @@ factorise_treatments(measurement_data)
 
 
 
-###In terms of weight
+# In terms of weight
 ```{r subset data by treatment, echo = FALSE}
+
+data<- parechinus_data
 
 fa <- data %>% 
   filter(temperature == "ambient", diet == "formulated")
@@ -97,7 +99,7 @@ kw <- data %>%
 
 
 
-##Descriptive statistics:
+## Descriptive statistics:
 
 
 function for weight:
@@ -306,11 +308,76 @@ uw_descriptive <- descriptive_table_notkelp(uw)
 kw_descriptive <- descriptive_table_kelp(kw)
 ka_descriptive <- descriptive_table_kelp(ka)
 
+all <- descriptive_table_notkelp(parechinus_data)
+
+
+```
+
+plot actual weights
+```{r summarise actual data}
+summarise_weight <- function(data){
+initial_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 0) %>% 
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 0)
+
+month1_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 1) %>% 
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 4)
+
+month2_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 2) %>% 
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 8)
+
+month3_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 3) %>% 
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 13)
+
+month4_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 4) %>% 
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 18)
+
+all_weight <- bind_rows(initial_dat, month1_dat, month2_dat, month3_dat, month4_dat)
+
+}
+
+all_weight <- summarise_weight(parechinus_data)
+
+
+
+
 
 ```
 
 
-##Growth calculation - continue here
+```{r plot actual data}
+
+attach(all_weight)
+ggplot(all_weight, aes(x = week, y = weight, color = as.factor(treatment))) +
+  geom_line() +
+  geom_point() +  geom_errorbar(aes(ymin = weight - sd, ymax = weight + sd), width = 0.2) +
+  labs(title = "Cape sea urchin weight (g) over time",
+       x = "Week",
+       y = "Total body weight (g)",
+       color = "Treatment") +
+  theme_classic() + theme(plot.title = element_text(family = "TT Times New Roman", hjust = 0.5))
+
+
+attach(parechinus_data)
+ggplot(parechinus_data, aes(x = time, y = spineloss))
+
+# plot(week, weight, col = as.factor(treatment), xlab = "Week", ylab = "Weight (g)", ylim = range(c(weight-sd, weight+sd)))
+# arrows(week,(weight-sd),week,(weight+sd),length = 0.5,angle = 90, code = 3, col = as.factor(treatment))
+
+
+```
+
+
+##Growth calculation
 
 function for weight growth calculation:
 ```{r data_transform_weight_growth}
@@ -361,16 +428,16 @@ month4_dat <- bind_rows(month4_dat, additional_data_month4)
   
 growth_dat1 <- left_join(initial_dat, month1_dat, by = "tank") %>% 
   group_by(tank) %>% 
-  mutate(w_growth1 = T1_weight-T0_weight) %>% distinct()
+  mutate(w_growth1 = (T1_weight-T0_weight)/29) %>% distinct()
 
 growth_dat2 <- left_join(month1_dat, month2_dat,by = "tank") %>%
   group_by(tank) %>%
-  mutate(w_growth2 = T2_weight-T1_weight) %>% distinct()
+  mutate(w_growth2 = (T2_weight-T1_weight)/29) %>% distinct()
 
 
 growth_dat3 <- left_join(month2_dat,month3_dat,by = "tank") %>%
   group_by(tank) %>%
-  mutate(w_growth3 = coalesce(T3_weight-T2_weight,0)) %>%  distinct()
+  mutate(w_growth3 = coalesce(((T3_weight-T2_weight)/32),0)) %>%  distinct()
 
 
 
@@ -380,7 +447,7 @@ growth_dat3 <- left_join(month2_dat,month3_dat,by = "tank") %>%
 
 growth_dat4 <- left_join(month3_dat,month4_dat,by = "tank") %>%
   group_by(tank) %>%
-  mutate(w_growth4 = coalesce(T4_weight - T3_weight, 0)) %>% distinct() %>%mutate(tank = as.numeric(tank)) %>%
+  mutate(w_growth4 = coalesce((T4_weight - T3_weight)/36, 0)) %>% distinct() %>%mutate(tank = as.numeric(tank)) %>%
   arrange(tank)
 
 
@@ -410,22 +477,22 @@ weight_growth_dat <- data_transform_weight_growth(data)
 ```
 
 
-#look for significant differences:
+## look for significant differences:
 
 create descriptive tables
 ```{r desciptive tables for ANOVA, echo = FALSE }
 #We want to see if weight gain (g) differs between treatments
 
-attach(growth_dat)
-names(growth_dat)
-summary(growth_dat)
+attach(weight_growth_dat)
+names(weight_growth_dat)
+summary(weight_growth_dat)
 
 unclass(treatment)
-growth_dat$treatment = as.factor(growth_dat$treatment)
-unclass(growth_dat$treatment)
-summary(growth_dat)
+weight_growth_dat$treatment = as.factor(weight_growth_dat$treatment)
+unclass(weight_growth_dat$treatment)
+summary(weight_growth_dat)
 
-dat <- growth_dat
+dat <- weight_growth_dat
 #growth_period is e.g. w_growth 1
 treatment_weight_growth_table <- function(growth_period){
 
@@ -438,7 +505,7 @@ treatment_weight_growth_table <- function(growth_period){
 X = treatment
 # Numerical variable
 Y = growth_period
-data = growth_dat
+data = weight_growth_dat
 ########################################
 
 #*****************************************
@@ -578,9 +645,27 @@ treatment_weight_growth_boxplot(w_growth4)
 
 
 
-#ANOVA or Kruskal Wallis:
+
+## ANOVA or Kruskal Wallis:
+
+First check normality and homoscedasticity
+```{r normality & homoscedasticity}
+
+
+shapiro.test(all)
+
+
+require("car")
+leveneTest(Ratio~Tank, data = wk0)
+leveneTest(logRatio~Tank, data = wk0)
+
+```
+
+
+
 Run ANOVA, then check assumptions, if not met, do Kruskal Wallis
 ```{r check ANOVA assumptions}
+
 #*** run an ANOVA using the aov function
 #*** First fit the model to check the assumptions
 #**Then see if there is a difference between or among groups
@@ -644,7 +729,7 @@ anova_and_modelval(w_growth2) #spread of residuals has pattern,can I remove kelp
 anova_and_modelval(w_growth3) #residuals not normally distributed, try without kelp?
 anova_and_modelval(w_growth4) #doesn't look too bad, odd pattern in b where it doesn't follow the line but otherwise looks normal, still think should try without kelp
 
-anova1 <- aov(w_growth2~diet*temperature,data=dat)
+anova1 <- aov(w_growth1~treatment,data=dat)
 summary(anova1)
 
 ```
@@ -653,11 +738,11 @@ Removing kelp for growth period 2 to 4
 This function isn't really working, I did it manually for the growth periods 2-4
 ```{r ANOVA without kelp}
 
-growth_dat_no_kelp <- growth_dat %>% filter(diet!= "kelp")
-dat <- growth_dat_no_kelp
+weight_growth_dat_no_kelp <- weight_growth_dat %>% filter(diet!= "kelp")
+dat <- weight_growth_dat_no_kelp
 
 no_kelp_anova_and_modelval <- function(growth_period){
-anova1 <- aov(w_growth4~diet*temperature,data=growth_dat_no_kelp)
+anova1 <- aov(w_growth4~temperature,data=weight_growth_dat_no_kelp)
 #model validation graphs
 res <- residuals(anova1)
 ## Now pull out your fitted values
@@ -694,7 +779,7 @@ anova_and_modelval(w_growth4)
 ```
 
 
-```{r check ANOVA results}
+```{r check ANOVA results }
 anova_results <- function(growth_period){
 anova1 <- aov(growth_period~treatment,data=dat)
 summary(anova1)
@@ -705,13 +790,155 @@ aov_wgrowth1<- anova_results(w_growth1)
 
 ```
 
+Post Hoc Tukey test
+
+```{r}
+#dat <- weight_growth_dat
+anova1 <- aov(w_growth4~diet+temperature,data=weight_growth_dat_no_kelp)
+summary(anova1)
+#><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>
+###### Tukey post-hoc test for anova #######
+#><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>
+# H0: mu1 = mu2 for all pairwise comparisons (Table3)
+#     (the means in each pair are equal)
+# H1: mu1 =/ mu2 for all pairwise comparisons (Table3)
+#     (the means in each pair are not equal) 
+
+## The test ##
+# ordered = TRUE --> compares means in an ordered way 
+#    just like they have been sorted
+Tukey1 = TukeyHSD(anova1, ordered=TRUE) 
+Tukey1
+
+# Creating the rounded table - this does not change
+Tukey.result = data.frame(unclass(Tukey1))
+
+################################################
+# Part you need to change!
+# Number of decimal places to round to 
+#################################################
+# decimals for difference in means and Lwr 
+# & upr confidence interval (CI) 
+Deci3 = 3   
+# decimals for the p-value
+Deci4 = 3
+# Getting comparisons
+Comp = row.names(Tukey.result)
+Comp
+#Pairwise hypotheses
+H0 = c("muU = muK", "muM = muK", "muF = muK", "muM = muU",
+       "muF = muU", "muF = muM")
+H1 = c("muU =/ muK", "muM =/ muK", "muF =/ muK", "muM =/ muU",
+       "muF =/ muU", "muF =/ muM")
+################################################
+
+#************************************************
+# *** This does not need to change
+# Round difference mean decimals
+TukeyM = round(Tukey.result[,1], Deci3)
+# Round p-value to set number of decimals
+Tukeyp = round(Tukey.result[,4], Deci4)
+# Conclusion whether you accept or reject Ho
+TukeyC = Tukey.result[,4]
+TukeyC = ifelse(TukeyC < 0.05, "Reject H0", "Accept H0")
+# Replacing the 0.000 values with < 0.001
+Tukeyp[Tukeyp < 0.001] = "< 0.001"
+#************************************************
+
+#################################################
+# Creating the labels for the columns
+# This changes every time
+# Remember units
+################################################
+diffML = "diff in Mean (g)" 
+pL = "p.value"
+###############################################
+
+#***********************************************
+# This does not change
+# Rounded Tukey table
+TukeyR = data.frame(Comp,H0,H1,TukeyM,Tukeyp,TukeyC)
+names(TukeyR) = c("Comparison","H0", "H1", diffML, pL, "Conclusion")
+TukeyR
+#************************************************
+
+###############################################
+## Sorting the data -> this needs to change every time
+# Create an arbitrary variable to help you sort correctly
+dat_w_growth1[,1]
+# E A B D C  --> Assign according to order
+TukeyR[,1]
+#[1] A-E B-E D-E C-E B-A D-A C-A D-B C-B C-D
+# Assign a number to each grouping
+Sorting = c(1,1,1,2,2,3)
+# So all comparisons with E get 1, with A get 2 etc
+#################################################
+
+#**********************************************
+# Creating a sorted table, this does not change
+TukeyR2 = data.frame(Sorting,TukeyR)
+#Sorting the data first by group and then by difference in Mean
+TukeyR2 = TukeyR2[order(TukeyR2$Sorting, -TukeyR2[,5]),]
+TukeyR2
+names(TukeyR2) = c("Sort","Comparison","H0", "H1", 
+                   diffML, pL, "Conclusion")
+#Call the table without the sorting variable
+TukeyR2[,2:7]
+
+# Table 3. Results of a Tukey multiple pairwise comparison test comparing 
+#       mean body weights (g) of mice among each of the five islands A to E.  
+#       The islands in each pairwise comparison are shown (comparison) along 
+#       with the pairwise null hypothesis (H0), the pairwise alternate 
+#       hypothesis (H1), the difference in the means of the two islands 
+#       (diff in Mean (g)), the probability (p.value) from the Tukey test 
+#       and the conclusion.
+
+  #Comparison        H0         H1      diff in Mean (g) p.value Conclusion
+  #   C-E       muC = muE   muC =/ muE            16.28 < 0.001  Reject H0
+  #   D-E       muD = muE   muD =/ muE            15.83 < 0.001  Reject H0
+  #   B-E       muB = muE   muB =/ muE            15.51 < 0.001  Reject H0
+  #   A-E       muA = muE   muA =/ muE             3.91   0.107  Accept H0
+  #   C-A       muC = muA   muC =/ muA            12.36 < 0.001  Reject H0
+  #   D-A       muD = muA   muD =/ muA            11.92 < 0.001  Reject H0
+  #   B-A       muB = muA   muB =/ muA            11.60 < 0.001  Reject H0
+  #   C-B       muC = muB   muC =/ muB             0.76   0.989  Accept H0
+  #   D-B       muD = muB   muD =/ muB             0.32   1.000  Accept H0
+  #   C-D       muC = muD   muC =/ muD             0.45   0.999  Accept H0
+
+#Look at the p-values to see which island means differ from each other
+# ** So from this we can see that mice from Islands A and E have 
+#    similar body weights (Table 4.4, p=0.107) and mice from islands 
+#    B, D and C have similar body weights (Table 4.4, p > 0.05), but 
+#    that mice from these two groups of islands (AE and BDC) have 
+#    different mean body weights (Table 4.4, p <0.05).
+
+# Means ordered: muE muA muB muD muC
+# Thus the H1 for the ANOVA model is: muE = muA =/ muB = muD = muC
+
+
+
+## Plotting the results ##
+#windows()
+par(las = 1, mai = c(0.9,0.9,0.5,0.2))
+plot(Tukey1)
+
+
+
+#*** The lines that touch the 0 line are the 
+#    values that are not significantly different 
+#    from zero --> Note the confidence intervals 
+#    span zero
+
+```
+
+
 ```{r ANOVA post hoc tukey}
 #look at line 2014 of part2_statistical tests....
 ```
 
 
 
-###In terms of size
+# In terms of size
 ```{r subset data by treatment, echo = FALSE}
 data <- measurement_data
 fa <- data %>% 
@@ -956,31 +1183,31 @@ write.table(ka_descriptive_size,"clipboard", sep = "\t")
 ```
 
 
-##Growth calculation - continue here
+##Growth calculation
 
 function for size growth calculation:
-```{r data_transform_weight_growth}
+```{r data_transform_size_growth}
 data<- measurement_data
 
 data_transform_size_growth <- function(data){
 initial_dat <- data %>% 
-  group_by(tank,diet, temperature) %>% 
+  group_by(tank,diet, temperature, treatment) %>% 
   filter(time == 0) %>% 
   summarise(T0_size = round(mean(diam), digits = 2),T0_size_sd = round(sd(diam), digits = 2),T0_size_var = round(var(diam), digits = 4),T0_size_n = length(diam))
 
 
 month1_dat <- data %>% 
-  group_by(tank, diet, temperature) %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
   filter(time == 1) %>% 
   summarise(T1_size = round(mean(diam), digits = 2),T1_size_sd = round(sd(diam), digits = 2),T1_size_var = round(var(diam), digits = 4),T1_size_n = length(diam))
 
 month2_dat <- data %>% 
-  group_by(tank, diet, temperature) %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
   filter(time == 2) %>% 
   summarise(T2_size = round(mean(diam), digits = 2),T2_size_sd = round(sd(diam), digits = 2),T2_size_var = round(var(diam), digits = 4),T2_size_n = length(diam))
 
 month3_dat <- data %>% 
-  group_by(tank, diet, temperature) %>% 
+  group_by(tank, diet, temperature,treatment) %>% 
   filter(time == 3) %>% 
   summarise(T3_size = round(mean(diam), digits = 2),T3_size_sd = round(sd(diam), digits = 2),T3_size_var = round(var(diam), digits = 4),T3_size_n = length(diam))
 
@@ -994,7 +1221,7 @@ additional_data_month3 <- data.frame(tank = kelp_tanks,diet = "kelp", T3_size = 
 month3_dat <- bind_rows(month3_dat, additional_data_month3)
 
 month4_dat <- data %>% 
-  group_by(tank, diet, temperature) %>% 
+  group_by(tank, diet, temperature,treatment) %>% 
   filter(time == 4) %>% 
   summarise(T4_size = round(mean(diam), digits = 2),T4_size_sd = round(sd(diam), digits = 2),T4_size_var = round(var(diam), digits = 4),T4_size_n = length(diam))
 
@@ -1045,8 +1272,8 @@ growth_dat <- growth_dat %>%
 
 growth_dat <- round(growth_dat[,4:7],digits = 2)
 
-growth_dat <- data.frame(month1_dat[,1:3],growth_dat)
-names(growth_dat) <- c("tank", "diet", "temperature", "s_growth1", "s_growth2", "s_growth3", "s_growth4")
+growth_dat <- data.frame(month1_dat[,1:4],growth_dat)
+names(growth_dat) <- c("tank", "diet", "temperature","treatment", "s_growth1", "s_growth2", "s_growth3", "s_growth4")
 growth_dat
 }
 
@@ -1241,7 +1468,7 @@ Run ANOVA, then check assumptions, if not met, do Kruskal Wallis
 # alpha = 0.05
 #Anova = aov(numerical~Categorical, data = dat)
 
-
+dat<- size_growth_dat
 anova_and_modelval <- function(growth_period){
 anova1 <- aov(growth_period~diet*temperature,data=dat)
 #model validation graphs
@@ -1288,12 +1515,12 @@ legend ("topleft", expression(bold("c")),
 
 #So if the assumptions are met, use the ANOVA results; 
   #if the data are not normal do a Kruskal Wallis
-anova_and_modelval(w_growth1) #looks okay
-anova_and_modelval(w_growth2) #spread of residuals has pattern,can I remove kelp?
-anova_and_modelval(w_growth3) #residuals not normally distributed, try without kelp?
-anova_and_modelval(w_growth4) #doesn't look too bad, odd pattern in b where it doesn't follow the line but otherwise looks normal, still think should try without kelp
+anova_and_modelval(s_growth1) #unequal variance? skewed normal dist
+anova_and_modelval(s_growth2) #good
+#anova_and_modelval(s_growth3) #non normal
+#anova_and_modelval(s_growth4) #
 
-anova1 <- aov(w_growth2~diet*temperature,data=dat)
+anova1 <- aov(s_growth2~diet*temperature,data=dat)
 summary(anova1)
 
 ```
@@ -1302,11 +1529,11 @@ Removing kelp for growth period 2 to 4
 This function isn't really working, I did it manually for the growth periods 2-4
 ```{r ANOVA without kelp}
 
-growth_dat_no_kelp <- growth_dat %>% filter(diet!= "kelp")
-dat <- growth_dat_no_kelp
+size_growth_dat_no_kelp <- size_growth_dat %>% filter(diet!= "kelp")
+dat <- size_growth_dat_no_kelp
 
 no_kelp_anova_and_modelval <- function(growth_period){
-anova1 <- aov(w_growth4~diet*temperature,data=growth_dat_no_kelp)
+anova1 <- aov(s_growth4~diet*temperature,data=size_growth_dat_no_kelp)
 #model validation graphs
 res <- residuals(anova1)
 ## Now pull out your fitted values
@@ -1360,6 +1587,21 @@ aov_wgrowth1<- anova_results(w_growth1)
 
 
 
+#Plot
+
+Plotting weight and size growth together
+
+```{r}
+
+sizes <- measurement_data %>% group_by(treatment,time) %>% summarise(mean_diam = mean(diam))
+weights<- parechinus_data %>% group_by(treatment,time) %>% summarise(mean_weight = mean(`weight (g)`))
+
+ws_urchins <- left_join(sizes,weights)
+ws_urchins$weight_size <- ws_urchins$mean_weight/ws_urchins$mean_diam
+
+plot(ws_urchins$time,ws_urchins$weight_size,col = as.factor(ws_urchins$treatment))
+legend()
+```
 
 
 
@@ -1519,20 +1761,6 @@ write.csv(somatic_growth, "somatic_growth_data.csv", row.names = FALSE)
 
 ```
 
--   Weight gain
-
-```{python}
-import numpy as np
-import matplotlib.pyplot as plt
-
-n = 256
-X = np.linspace(-np.pi,np.pi,n,endpoint=True)
-Y = np.sin(2*X)
-
-plt.plot (X, Y+1, color='blue', alpha=1.00)
-plt.plot (X, Y-1, color='blue', alpha=1.00)
-plt.show()
-```
 
 ```{r, echo=FALSE}
 
