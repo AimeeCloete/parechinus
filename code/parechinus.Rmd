@@ -367,9 +367,6 @@ ggplot(all_weight, aes(x = week, y = weight, color = as.factor(treatment))) +
   theme_classic() + theme(plot.title = element_text(family = "TT Times New Roman", hjust = 0.5))
 
 
-attach(parechinus_data)
-ggplot(parechinus_data, aes(x = time, y = spineloss))
-
 # plot(week, weight, col = as.factor(treatment), xlab = "Week", ylab = "Weight (g)", ylim = range(c(weight-sd, weight+sd)))
 # arrows(week,(weight-sd),week,(weight+sd),length = 0.5,angle = 90, code = 3, col = as.factor(treatment))
 
@@ -379,11 +376,12 @@ ggplot(parechinus_data, aes(x = time, y = spineloss))
 
 ##Growth calculation
 
-function for weight growth calculation:
-```{r data_transform_weight_growth}
+###SGR 
+function for SGR weight calculation:
+```{r data_transform_weight_growth_SGR}
 data<- parechinus_data
 
-data_transform_weight_growth <- function(data){
+data_transform_weight_growth_SGR <- function(data){
 initial_dat <- data %>% 
   group_by(tank,diet, temperature, treatment) %>% 
   filter(time == 0) %>% 
@@ -428,16 +426,16 @@ month4_dat <- bind_rows(month4_dat, additional_data_month4)
   
 growth_dat1 <- left_join(initial_dat, month1_dat, by = "tank") %>% 
   group_by(tank) %>% 
-  mutate(w_growth1 = (T1_weight-T0_weight)/29) %>% distinct()
+  mutate(w_growth1 = 100*(log(T1_weight/T0_weight))/29) %>% distinct()
 
 growth_dat2 <- left_join(month1_dat, month2_dat,by = "tank") %>%
   group_by(tank) %>%
-  mutate(w_growth2 = (T2_weight-T1_weight)/29) %>% distinct()
+  mutate(w_growth2 = 100*(log(T2_weight/T1_weight))/29) %>% distinct()
 
 
 growth_dat3 <- left_join(month2_dat,month3_dat,by = "tank") %>%
   group_by(tank) %>%
-  mutate(w_growth3 = coalesce(((T3_weight-T2_weight)/32),0)) %>%  distinct()
+  mutate(w_growth3 = coalesce((100*(log(T3_weight/T2_weight))/32),0)) %>%  distinct()
 
 
 
@@ -447,7 +445,7 @@ growth_dat3 <- left_join(month2_dat,month3_dat,by = "tank") %>%
 
 growth_dat4 <- left_join(month3_dat,month4_dat,by = "tank") %>%
   group_by(tank) %>%
-  mutate(w_growth4 = coalesce((T4_weight - T3_weight)/36, 0)) %>% distinct() %>%mutate(tank = as.numeric(tank)) %>%
+  mutate(w_growth4 = coalesce((100*(log(T4_weight/T3_weight))/36), 0)) %>% distinct() %>%mutate(tank = as.numeric(tank)) %>%
   arrange(tank)
 
 
@@ -471,13 +469,62 @@ names(growth_dat) <- c("tank", "diet", "temperature", "treatment", "w_growth1", 
 growth_dat
 }
 
-weight_growth_dat <- data_transform_weight_growth(data)
+weight_SGR_dat <- data_transform_weight_growth_SGR(data)
 
 
 ```
 
 
 ## look for significant differences:
+
+check normality and homoscedasticity
+```{r}
+#*********************************
+#** Shapiro-Wilk normality test **
+#*********************************
+# If p > 0.05, we can be 95% certain that the 
+# data are normally distributed. 
+# (In other words, the null hypothesis is 
+#   probably true.) 
+# If p < 0.05, we can be 95% certain that the 
+# data are not normally distributed. 
+# (In other words, the null hypothesis is 
+#   probably false.) 
+
+# H0: The data are normally distributed
+# H1: The data are not normally distributed
+# alpha = 0.05
+
+shapiro.test(weight_SGR_dat$w_growth1) #W = 0.97628, p-value = 0.6867
+shapiro.test(weight_SGR_dat$w_growth2) #W = 0.9383, p-value = 0.06699
+shapiro.test(weight_SGR_dat$w_growth3) #not normal #W = 0.91693, p-value = 0.01718
+shapiro.test(weight_SGR_dat$w_growth4) #W = 0.96391, p-value = 0.3499
+
+#*********************************
+#** Levene homoscedasticity test **
+#*********************************
+#If values are significant, the treatment group data does not have equal variances
+
+require("car")
+
+leveneTest(weight_SGR_dat$w_growth1~weight_SGR_dat$treatment) #equal variance
+#       Df F value Pr(>F)
+# group  7   1.127 0.3792
+#       24     
+leveneTest(weight_SGR_dat$w_growth2~weight_SGR_dat$treatment) #not equal variance
+#       Df F value  Pr(>F)  
+# group  7  2.8723 0.02506 *
+#       24    
+leveneTest(weight_SGR_dat$w_growth3~weight_SGR_dat$treatment) #not equal variance
+#       Df F value   Pr(>F)   
+# group  7  4.2341 0.003595 **
+#       24
+leveneTest(weight_SGR_dat$w_growth4~weight_SGR_dat$treatment) #equal variance
+#       Df F value Pr(>F)
+# group  7  1.7097 0.1542
+#       24           
+```
+
 
 create descriptive tables
 ```{r desciptive tables for ANOVA, echo = FALSE }
@@ -968,6 +1015,66 @@ kw <- data %>%
 
 ```
 
+plot actual size
+```{r summarise actual data}
+summarise_size <- function(data){
+initial_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 0) %>% 
+  summarise(size = round(mean(diam), digits = 2),sd = round(sd(diam), digits = 2),se = round((sd(diam)/sqrt(length(diam))), digits = 2), var = round(var(diam), digits = 4),n = length(diam),week = 0)
+
+month1_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 1) %>% 
+  summarise(size = round(mean(diam), digits = 2),sd = round(sd(diam), digits = 2),se = round((sd(diam)/sqrt(length(diam))), digits = 2), var = round(var(diam), digits = 4),n = length(diam),week = 4)
+
+month2_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 2) %>% 
+  summarise(size = round(mean(diam), digits = 2),sd = round(sd(diam), digits = 2),se = round((sd(diam)/sqrt(length(diam))), digits = 2), var = round(var(diam), digits = 4),n = length(diam),week = 8)
+
+month3_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 3) %>% 
+  summarise(size = round(mean(diam), digits = 2),sd = round(sd(diam), digits = 2),se = round((sd(diam)/sqrt(length(diam))), digits = 2), var = round(var(diam), digits = 4),n = length(diam),week = 13)
+
+month4_dat <- data %>% 
+  group_by(treatment) %>% 
+  filter(time == 4) %>% 
+  summarise(size = round(mean(diam), digits = 2),sd = round(sd(diam), digits = 2),se = round((sd(diam)/sqrt(length(diam))), digits = 2),var = round(var(diam), digits = 4),n = length(diam),week = 18)
+
+all_size <- bind_rows(initial_dat, month1_dat, month2_dat, month3_dat, month4_dat)
+
+}
+
+all_size <- summarise_size(measurement_data)
+
+
+
+
+
+```
+
+
+```{r plot actual data}
+
+attach(all_size)
+ggplot(all_size, aes(x = week, y = size, color = as.factor(treatment))) +
+  geom_line() +
+  geom_point() +  geom_errorbar(aes(ymin = size - se, ymax = size + se), width = 0.2) +
+  labs(title = "Cape sea urchin diameter (cm) over time",
+       x = "Week",
+       y = "Test diameter (cm)",
+       color = "Treatment") +
+  theme_classic() + theme(plot.title = element_text(family = "TT Times New Roman", hjust = 0.5))
+
+
+# plot(week, weight, col = as.factor(treatment), xlab = "Week", ylab = "Weight (g)", ylim = range(c(weight-sd, weight+sd)))
+# arrows(week,(weight-sd),week,(weight+sd),length = 0.5,angle = 90, code = 3, col = as.factor(treatment))
+
+
+```
+
 
 
 ##Descriptive statistics:
@@ -1184,6 +1291,152 @@ write.table(ka_descriptive_size,"clipboard", sep = "\t")
 
 
 ##Growth calculation
+
+function for SGR size calculation:
+```{r data_transform_weight_growth}
+data<- measurement_data
+
+data_transform_size_growth_SGR <- function(data){
+initial_dat <- data %>% 
+  group_by(tank,diet, temperature, treatment) %>% 
+  filter(time == 0) %>% 
+  summarise(T0_size = round(mean(diam), digits = 2),T0_size_sd = round(sd(diam), digits = 2),T0_size_var = round(var(diam), digits = 4),T0_size_n = length(diam))
+
+
+month1_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 1) %>% 
+  summarise(T1_size = round(mean(diam), digits = 2),T1_size_sd = round(sd(diam), digits = 2),T1_size_var = round(var(diam), digits = 4),T1_size_n = length(diam))
+
+month2_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 2) %>% 
+  summarise(T2_size = round(mean(diam), digits = 2),T2_size_sd = round(sd(diam), digits = 2),T2_size_var = round(var(diam), digits = 4),T2_size_n = length(diam))
+
+month3_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 3) %>% 
+  summarise(T3_size = round(mean(diam), digits = 2),T3_size_sd = round(sd(diam), digits = 2),T3_size_var = round(var(diam), digits = 4),T3_size_n = length(diam))
+
+#set kelp tanks size to zero
+# Find tanks that are only in month4_dat
+kelp_tanks <- setdiff(month2_dat$tank, month3_dat$tank)
+
+# Create a data frame with these tanks and set s_growth to 0
+additional_data_month3 <- data.frame(tank = kelp_tanks,diet = "kelp", T3_size = 0)
+
+month3_dat <- bind_rows(month3_dat, additional_data_month3)
+
+month4_dat <- data %>% 
+  group_by(tank, diet, temperature, treatment) %>% 
+  filter(time == 4) %>% 
+  summarise(T4_size = round(mean(diam), digits = 2),T4_size_sd = round(sd(diam), digits = 2),T4_size_var = round(var(diam), digits = 4),T4_size_n = length(diam))
+
+#set kelp tanks size to zero
+
+# Create a data frame with these tanks and set s_growth to 0
+additional_data_month4 <- data.frame(tank = kelp_tanks,diet = "kelp", T4_size = 0)
+month4_dat <- bind_rows(month4_dat, additional_data_month4)
+
+  
+growth_dat1 <- left_join(initial_dat, month1_dat, by = "tank") %>% 
+  group_by(tank) %>% 
+  mutate(s_growth1 = 100*(log(T1_size/T0_size))/29) %>% distinct()
+
+growth_dat2 <- left_join(month1_dat, month2_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(s_growth2 = 100*(log(T2_size/T1_size))/29) %>% distinct()
+
+
+growth_dat3 <- left_join(month2_dat,month3_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(s_growth3 = coalesce((100*(log(T3_size/T2_size))/32),0)) %>%  distinct()
+
+
+
+
+#growth_dat3 <- replace(growth_dat3, is.na(growth_dat3),0)
+
+
+growth_dat4 <- left_join(month3_dat,month4_dat,by = "tank") %>%
+  group_by(tank) %>%
+  mutate(s_growth4 = coalesce((100*(log(T4_size/T3_size))/36), 0)) %>% distinct() %>%mutate(tank = as.numeric(tank)) %>%
+  arrange(tank)
+
+
+
+growth_dat <- data.frame(growth_dat1[,1:4],growth_dat1$s_growth1,growth_dat2$s_growth2, growth_dat3$s_growth3, growth_dat4$s_growth4)
+
+names(growth_dat) <- c("tank", "diet", "temperature", "treatment", "s_growth1", "s_growth2", "s_growth3", "s_growth4")
+
+
+# Setting growth rate 3 to zero for kelp tanks
+tanks_to_set_to_zero <- kelp_tanks
+
+# Use mutate() and ifelse() to change the values
+growth_dat <- growth_dat %>%
+  mutate(s_growth3 = ifelse(tank %in% tanks_to_set_to_zero, 0, s_growth3), s_growth4 = ifelse(tank %in% tanks_to_set_to_zero, 0, s_growth4))
+
+growth_dat <- round(growth_dat[,5:8],digits = 2)
+
+growth_dat <- data.frame(month1_dat[,1:4],growth_dat)
+names(growth_dat) <- c("tank", "diet", "temperature", "treatment", "s_growth1", "s_growth2", "s_growth3", "s_growth4")
+growth_dat
+}
+
+size_SGR_dat <- data_transform_size_growth_SGR(data)
+
+
+```
+
+check normality and homoscedasticity
+```{r}
+#*********************************
+#** Shapiro-Wilk normality test **
+#*********************************
+# If p > 0.05, we can be 95% certain that the 
+# data are normally distributed. 
+# (In other words, the null hypothesis is 
+#   probably true.) 
+# If p < 0.05, we can be 95% certain that the 
+# data are not normally distributed. 
+# (In other words, the null hypothesis is 
+#   probably false.) 
+
+# H0: The data are normally distributed
+# H1: The data are not normally distributed
+# alpha = 0.05
+
+shapiro.test(size_SGR_dat$s_growth1) #not normal #W = 0.8022, p-value = 4.483e-05
+shapiro.test(size_SGR_dat$s_growth2) #W = 0.98382, p-value = 0.8997
+shapiro.test(size_SGR_dat$s_growth3) #not normal #W = 0.88329, p-value = 0.002389
+shapiro.test(size_SGR_dat$s_growth4) #not normal #W = 0.88237, p-value = 0.002269
+
+#*********************************
+#** Levene homoscedasticity test **
+#*********************************
+#If values are significant, the treatment group data does not have equal variances
+
+require("car")
+
+leveneTest(size_SGR_dat$s_growth1~size_SGR_dat$treatment) #equal variance
+#       Df F value Pr(>F)
+# group 7  0.8084 0.5889
+#       24     
+leveneTest(size_SGR_dat$s_growth2~size_SGR_dat$treatment)  #equal variance
+#       Df F value  Pr(>F)  
+# group  7  1.5797 0.1894
+#       24    
+leveneTest(size_SGR_dat$s_growth3~size_SGR_dat$treatment)  #equal variance
+#       Df F value   Pr(>F)   
+# group  7   1.733 0.1486
+#       24
+leveneTest(size_SGR_dat$s_growth4~size_SGR_dat$treatment) #equal variance
+#       Df F value Pr(>F)
+# group  7  1.3173 0.2849
+#       24           
+```
+
 
 function for size growth calculation:
 ```{r data_transform_size_growth}
