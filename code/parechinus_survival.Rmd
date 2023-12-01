@@ -1,0 +1,140 @@
+---
+title: "parechinus_survival"
+author: "Aimee"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(knitr)  
+setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
+#library(reticulate)  
+#knitr::knit_engines$set(python = reticulate::eng_python)  
+#library(reticulate)
+#use_python("C:/Users/aimee/AppData/Local/Programs/Python/Python39/python.exe")
+#py_config()
+```
+
+Survival rate
+Survival rate per tank = (19- cummulative mortality in tank)/19
+
+```{r load survival data}
+survival <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/survival.xlsx")
+
+```
+
+
+summarise
+```{r}
+attach(survival)
+data_transform_survival <- function(week){
+summary <- survival %>% 
+  group_by(Tank,Diet, Temperature) %>% 
+  filter(Week == week)%>% summarise(Lost, Week = week)
+}
+
+all_survival_sum <- data.frame()
+
+# Initialize a variable to store cumulative lost animals
+cumulative_lost <- 0
+
+# Loop through all weeks
+for (i in 1:24) {          
+  survival_sum <- data_transform_survival(i)
+  
+  # Add cumulative lost animals for the current week
+  survival_sum <- survival_sum %>%
+    mutate(CumulativeLost = Lost + cumulative_lost,
+           SurvivalRate = 100*(19 - CumulativeLost) / 19)
+  
+  # Update cumulative lost for the next iteration
+  cumulative_lost <- max(survival_sum$CumulativeLost)
+  
+  # Bind the current week's results to the cumulative data frame
+  all_survival_sum <- bind_rows(all_survival_sum, survival_sum)
+}
+
+# View the resulting table
+print(all_survival_sum)
+
+all_survival_sum <- all_survival_sum %>%
+  mutate(Treatment = paste0(substr(Diet, 1, 1), substr(Temperature, 1, 1)))
+
+# View the updated data frame
+print(all_survival_sum)
+```
+```{r}
+library(ggplot2)
+
+# Assuming 'all_survival_sum' contains the cumulative data
+ggplot(all_survival_sum, aes(x = Week, y = SurvivalRate, color = factor(Treatment))) +
+  geom_line() +
+  geom_errorbar(aes(ymin = SurvivalRate - 0.1, ymax = SurvivalRate + 0.1), width = 0.1) +  # Adjust the width and error values as needed
+  labs(title = "Survival Rate Over Weeks",
+       x = "Week",
+       y = "Survival Rate",
+       color = "Temperature") +
+  theme_minimal()
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Assuming 'all_survival_sum' contains the cumulative data
+filtered_data <- all_survival_sum %>%
+  filter(Week <= 8)
+
+# Calculate the standard error for each group
+se <- function(x) sd(x) / sqrt(length(x))
+
+# Create a plot for the first 8 weeks with standard error error bars
+ggplot(all_survival_sum, aes(x = Week, y = SurvivalRate, color = factor(Diet))) +
+  geom_line() +
+  geom_errorbar(
+    aes(ymin = SurvivalRate - se(SurvivalRate), ymax = SurvivalRate + se(SurvivalRate)),
+    width = 0.1
+  ) +
+  labs(title = "Survival Rate Over Weeks (First 8 Weeks)",
+       x = "Week",
+       y = "Survival Rate",
+       color = "Temperature") +
+  theme_minimal()
+
+```
+
+
+```{r}
+anova1 <- aov(SurvivalRate ~ Diet, data = all_survival_sum)
+summary(anova1)
+residuals <- residuals(anova1)
+shapiro.test(residuals)
+shapiro.test(all_survival_sum$SurvivalRate)
+library(car)  # Make sure to install the 'car' package if not already installed
+leveneTest(residuals ~ Treatment, data = all_survival_sum)
+leveneTest(SurvivalRate ~ Treatment, data = all_survival_sum)
+
+posthoc_result <- TukeyHSD(anova1)
+posthoc_result
+
+
+kruskal.test(SurvivalRate ~ Diet, data = all_survival_sum)
+
+
+################################
+library(dunn.test)
+
+# Assuming 'kw_result' is the result of Kruskal-Wallis test
+kw_result <- kruskal.test(SurvivalRate ~ Treatment, data = all_survival_sum)
+
+# Perform post-hoc Dunn test
+posthoc_dunn <- dunn.test(filtered_data$SurvivalRate, g = filtered_data$Treatment, method = "bonferroni")
+
+# View post-hoc results
+print(posthoc_dunn)
+```
+

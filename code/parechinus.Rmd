@@ -30,7 +30,7 @@ This project aims to compare 8 treatments in terms of:
 
 4.  Gonad development
 
-1.  **Somatic Growth Rate**
+### 1.  **Somatic Growth Rate**
 
 ```{r load data, echo = FALSE}
 setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
@@ -308,7 +308,6 @@ uw_descriptive <- descriptive_table_notkelp(uw)
 kw_descriptive <- descriptive_table_kelp(kw)
 ka_descriptive <- descriptive_table_kelp(ka)
 
-all <- descriptive_table_notkelp(parechinus_data)
 
 
 ```
@@ -319,33 +318,34 @@ summarise_weight <- function(data){
 initial_dat <- data %>% 
   group_by(treatment) %>% 
   filter(time == 0) %>% 
-  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 0)
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),se = round((sd(`weight (g)`)/sqrt(length(`weight (g)`))), digits = 2), var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 0)
 
 month1_dat <- data %>% 
   group_by(treatment) %>% 
   filter(time == 1) %>% 
-  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 4)
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),se = round((sd(`weight (g)`)/sqrt(length(`weight (g)`))), digits = 2), var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 4)
 
 month2_dat <- data %>% 
   group_by(treatment) %>% 
   filter(time == 2) %>% 
-  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 8)
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),se = round((sd(`weight (g)`)/sqrt(length(`weight (g)`))), digits = 2), var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 8)
 
 month3_dat <- data %>% 
   group_by(treatment) %>% 
   filter(time == 3) %>% 
-  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 13)
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),se = round((sd(`weight (g)`)/sqrt(length(`weight (g)`))), digits = 2), var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 13)
 
 month4_dat <- data %>% 
   group_by(treatment) %>% 
   filter(time == 4) %>% 
-  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 18)
+  summarise(weight = round(mean(`weight (g)`), digits = 2),sd = round(sd(`weight (g)`), digits = 2),se = round((sd(`weight (g)`)/sqrt(length(`weight (g)`))), digits = 2),var = round(var(`weight (g)`), digits = 4),n = length(`weight (g)`),week = 18)
 
 all_weight <- bind_rows(initial_dat, month1_dat, month2_dat, month3_dat, month4_dat)
 
 }
 
 all_weight <- summarise_weight(parechinus_data)
+
 
 
 
@@ -359,7 +359,7 @@ all_weight <- summarise_weight(parechinus_data)
 attach(all_weight)
 ggplot(all_weight, aes(x = week, y = weight, color = as.factor(treatment))) +
   geom_line() +
-  geom_point() +  geom_errorbar(aes(ymin = weight - sd, ymax = weight + sd), width = 0.2) +
+  geom_point() +  geom_errorbar(aes(ymin = weight - se, ymax = weight + se), width = 0.2) +
   labs(title = "Cape sea urchin weight (g) over time",
        x = "Week",
        y = "Total body weight (g)",
@@ -385,7 +385,7 @@ data_transform_weight_growth_SGR <- function(data){
 initial_dat <- data %>% 
   group_by(tank,diet, temperature, treatment) %>% 
   filter(time == 0) %>% 
-  summarise(T0_weight = round(mean(`weight (g)`), digits = 2),T0_weight_sd = round(sd(`weight (g)`), digits = 2),T0_weight_var = round(var(`weight (g)`), digits = 4),T0_weight_n = length(`weight (g)`))
+  summarise(T0_weight = round(mean(`weight (g)`), digits = 2),T0_weight_sd = round(sd(`weight (g)`), digits = 2),T0_weight_var = round(var(`weight (g)`), digits = 4),T0_weight_n = length(`weight (g)`), week = 0)
 
 
 month1_dat <- data %>% 
@@ -530,16 +530,16 @@ create descriptive tables
 ```{r desciptive tables for ANOVA, echo = FALSE }
 #We want to see if weight gain (g) differs between treatments
 
-attach(weight_growth_dat)
-names(weight_growth_dat)
-summary(weight_growth_dat)
+attach(weight_SGR_dat)
+# names(weight_SGR_dat)
+# summary(weight_SGR_dat)
+# 
+# unclass(treatment)
+# weight_SGR_dat$treatment = as.factor(weight_SGR_dat$treatment)
+# unclass(weight_SGR_dat$treatment)
+# summary(weight_SGR_dat)
 
-unclass(treatment)
-weight_growth_dat$treatment = as.factor(weight_growth_dat$treatment)
-unclass(weight_growth_dat$treatment)
-summary(weight_growth_dat)
-
-dat <- weight_growth_dat
+dat <- weight_SGR_dat
 #growth_period is e.g. w_growth 1
 treatment_weight_growth_table <- function(growth_period){
 
@@ -552,14 +552,15 @@ treatment_weight_growth_table <- function(growth_period){
 X = treatment
 # Numerical variable
 Y = growth_period
-data = weight_growth_dat
+data = weight_SGR_dat
 ########################################
 
 #*****************************************
 #****This does not change
 Mean = aggregate(Y~X,data=dat,FUN=mean)
-Stdev = aggregate(Y~X,data=dat,FUN=sd)
-Var = aggregate(Y~X,data=dat,FUN=var)
+Stdev <- aggregate(Y~X, data = dat, FUN = sd)
+#Stdev = aggregate(Y~X,data=dat,FUN=sd)
+Var = aggregate(Y~X,data=dat,FUN= var)
 n = aggregate(Y~X,data=dat,FUN=length)
 
 # Create a table with the aggregated data
@@ -628,7 +629,7 @@ Descriptive
 
 }
 
-dat_w_growth1<- treatment_weight_growth_table(w_growth1)
+dat_SGR1<- treatment_weight_growth_table(w_growth1)
 dat_w_growth2<- treatment_weight_growth_table(w_growth2)
 dat_w_growth3<- treatment_weight_growth_table(w_growth3)
 dat_w_growth4<- treatment_weight_growth_table(w_growth4)
@@ -776,7 +777,7 @@ anova_and_modelval(w_growth2) #spread of residuals has pattern,can I remove kelp
 anova_and_modelval(w_growth3) #residuals not normally distributed, try without kelp?
 anova_and_modelval(w_growth4) #doesn't look too bad, odd pattern in b where it doesn't follow the line but otherwise looks normal, still think should try without kelp
 
-anova1 <- aov(w_growth1~treatment,data=dat)
+anova1 <- aov(w_growth1~diet+temperature,data=weight_SGR_dat)
 summary(anova1)
 
 ```
@@ -841,7 +842,7 @@ Post Hoc Tukey test
 
 ```{r}
 #dat <- weight_growth_dat
-anova1 <- aov(w_growth4~diet+temperature,data=weight_growth_dat_no_kelp)
+anova1 <- aov(w_growth4~diet,data=weight_SGR_dat)
 summary(anova1)
 #><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>><>
 ###### Tukey post-hoc test for anova #######
@@ -897,7 +898,7 @@ Tukeyp[Tukeyp < 0.001] = "< 0.001"
 # This changes every time
 # Remember units
 ################################################
-diffML = "diff in Mean (g)" 
+diffML = "diff in Mean (%growth/day)" 
 pL = "p.value"
 ###############################################
 
@@ -2062,7 +2063,6 @@ t4<- data %>%
 ```
 
 ```{r subset treatment by time}
-
 #formulated ambient
 fa_1 <- fa %>% 
   filter(time == "1")
@@ -2138,14 +2138,21 @@ uw_2 <- uw %>%
 uw_3 <- uw %>% 
   filter(time == "3")
 
-uw_4 <- uw %>% 
-  filter(time == "4")
+uw_4 <- uw %>%
+```
+
+
+```{r subset treatment by time}
+filter(time == "4")
 
 ```
 
 
-2.  **Feed Conversion Ratio**
+###2.  **Feed Conversion Ratio**
 
 Formula used:$$
 feed consumed / weight gain
 $$
+
+
+
