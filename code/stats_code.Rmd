@@ -1,0 +1,294 @@
+---
+title: "stats_code"
+author: "Aimee"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(knitr)  
+setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
+```
+
+#Survival rate
+```{r}
+survival <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/survival.xlsx")
+
+survival$Treatment <- paste0(substr(survival$Diet, 1, 1), substr(survival$Temperature, 1, 1))
+
+survival <- survival %>% group_by(Treatment) %>% mutate(CumulativeLost= cumsum(Lost))
+
+survival <-survival %>% group_by(Treatment) %>% mutate(survival_rate = 100*( (76-CumulativeLost)/76))
+
+
+```
+
+Check normality and homoscedasticity
+
+For Shapiro: If p < 0.05, we can be 95% certain that the 
+data are not normally distributed. 
+
+For Levene: If p < 0.05, the treatment group data does not have equal variances
+```{r}
+
+final_survival <- survival %>% filter(Week == 24)
+week8_survival <- survival%>% filter(Week == 8)
+
+shapiro.test(week8_survival$survival_rate) #not normal
+#W = 0.82452, p-value = 0.0001221
+
+
+shapiro.test(final_survival$survival_rate) #not normal
+#W = 0.8611, p-value = 0.003538
+
+shapiro.test(survival$survival_rate) #not normal
+#W = 0.82159, p-value < 2.2e-16
+
+require("car")
+
+leveneTest(week8_survival$survival_rate~week8_survival$Treatment) #equal
+#      Df F value  Pr(>F)  
+#group  7  2.0566 0.08893 .
+#      24             
+
+leveneTest(final_survival$survival_rate~final_survival$Treatment) #equal
+#      Df F value Pr(>F)
+#group  5  1.6273 0.2035
+#      18         
+
+```
+
+
+Kruskal-Wallis for week 8 survival
+```{r}
+#install.packages("dunn.test", dependencies = TRUE)
+require("dunn.test")
+#install.packages("coin", dependencies = TRUE)
+require(coin)
+
+kruskal.test(survival_rate ~ Treatment, data = week8_survival) 
+#significant: Kruskal-Wallis chi-squared = 18.163, df = 7, p-value = 0.01126
+
+dunn.test(week8_survival$survival_rate, g = week8_survival$Treatment)
+
+
+```
+
+
+Kruskal-Wallis for final survival
+```{r}
+
+
+kruskal.test(survival_rate ~ Treatment, data = final_survival) #not significant: Kruskal-Wallis chi-squared = 9.9497, df = 5, p-value = 0.07667
+
+
+
+```
+
+
+
+#SGR
+
+Load data
+```{r}
+size <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/parechinus_size.xlsx")
+
+
+weight <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/parechinus_weight.xlsx")
+
+somatic_growth <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/somatic_growth.xlsx")
+```
+
+Check normality and homoscedasticity:
+
+Actual data values
+```{r}
+shapiro.test(size$diam) #not normal
+#W = 0.99446, p-value = 4.329e-09
+
+shapiro.test(weight$`weight (g)`) #not normal
+#W = 0.99001, p-value = 1.749e-13
+
+require("car")
+
+leveneTest(size$diam~size$treatment) #not equal p=7.913e-10 ***
+
+leveneTest(weight$`weight (g)`~weight$treatment) #not equal p= 2.937e-07 ***
+
+#not normal and variances not equal - so Kruskal Wallis
+```
+SGR values at weekly intervals
+Normality & Homoscedasticity tests
+```{r}
+
+weight_SGR_prior_tests <- function(data){
+  shapiro <- shapiro.test(data$`weight_specific growth rate`)
+  levene <- leveneTest(data$`weight_specific growth rate`~data$treatment)
+  print(shapiro)
+  print(levene)
+}
+
+size_SGR_prior_tests <- function(data){
+  shapiro <- shapiro.test(data$`size_specific growth rate`)
+  levene <- leveneTest(data$`size_specific growth rate`~data$treatment)
+  print(shapiro)
+  print(levene)
+}
+
+SGR4 <- somatic_growth %>% filter(week == 4)
+SGR8 <- somatic_growth %>% filter(week == 8)
+SGR13 <- somatic_growth %>% filter(week == 13)
+SGR18 <- somatic_growth %>% filter(week == 18)
+SGR23 <- somatic_growth %>% filter(week == 23)
+  
+weight_SGR_prior_tests(SGR4) #normal & equal - ANOVA
+weight_SGR_prior_tests(SGR8) #normal & NOT equal - welch ANOVA
+weight_SGR_prior_tests(SGR13) #normal & equal - ANOVA
+weight_SGR_prior_tests(SGR18)#normal & equal - ANOVA
+weight_SGR_prior_tests(SGR23)#normal & equal - ANOVA
+
+weight_SGR_prior_tests(somatic_growth) #normal & NOT equal
+ 
+size_SGR_prior_tests(SGR4)#NOT normal & equal - Kruskal Wallis
+size_SGR_prior_tests(SGR8) #normal & equal - ANOVA
+size_SGR_prior_tests(SGR13) #normal & equal - ANOVA
+size_SGR_prior_tests(SGR18) #normal & equal - ANOVA
+size_SGR_prior_tests(SGR23) #normal & equal - ANOVA
+
+```
+
+ANOVA tests
+```{r}
+anova_weight_SGR <- function(dat){
+aov(`weight_specific growth rate`~diet*temperature,data=dat)
+}
+w_anova4<- anova_weight_SGR(SGR4)
+w_anova13<- anova_weight_SGR(SGR13)
+w_anova18<- anova_weight_SGR(SGR18)
+w_anova23<- anova_weight_SGR(SGR23)
+summary(w_anova4)
+
+summary(w_anova13)
+summary(w_anova18)
+summary(w_anova23)
+
+anova_size_SGR <- function(dat){
+aov(`size_specific growth rate`~diet*temperature,data=dat)
+}
+
+kruskal.test(`size_specific growth rate` ~ treatment, data = SGR4)
+s_anova8<- anova_size_SGR(SGR8)
+s_anova13<- anova_size_SGR(SGR13)
+s_anova18<- anova_size_SGR(SGR18)
+s_anova23<- anova_size_SGR(SGR23)
+summary(s_anova8)
+summary(s_anova13)
+summary(s_anova18)
+summary(s_anova23)
+
+
+
+```
+
+
+
+Post hoc
+```{r}
+Tukey4 = TukeyHSD(w_anova4, ordered=TRUE) 
+Tukey4
+```
+
+
+
+Averages
+```{r}
+SGR4 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`weight_specific growth rate`), SGR_se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`)))
+
+
+
+
+```
+
+
+#Gonad
+
+Load data
+```{r}
+gonad <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad.xlsx")
+
+gonad9 <- gonad %>% filter(week == 9)
+gonad19 <- gonad %>% filter(week == 19)
+gonad26 <- gonad %>% filter(week == 26)
+
+
+```
+
+Normality & Homoscedasticity
+```{r}
+require(car)
+
+GSI_prior_tests <- function(data){
+  shapiro <- shapiro.test(data$GSI)
+  levene <- leveneTest(data$GSI~data$treatment)
+  print(shapiro)
+  print(levene)
+}
+
+GSI_prior_tests(gonad9) #not normal, equal variance - Kruskal
+GSI_prior_tests(gonad19) #normal, equal variance - ANOVA
+GSI_prior_tests(gonad26) #normal, equal variance - ANOVA
+
+
+```
+Kruskals
+```{r}
+
+
+library(dunn.test)
+kruskal.test(GSI ~ treatment, data = gonad9) #significant
+#Kruskal-Wallis chi-squared = 32.586, df = 7, p-value = 3.162e-05
+
+require("dunn.test")
+#install.packages("coin", dependencies = TRUE)
+require(coin)
+
+##DIET##
+kruskal.test(GSI ~ diet, data = gonad9) #significant
+#Kruskal-Wallis chi-squared = 31.198, df = 3, p-value =7.724e-07
+
+dunn.test(gonad9$GSI, g = gonad9$diet)
+dunn.test(gonad9$GSI, g = gonad9$treatment)
+##TEMP##
+kruskal.test(GSI ~ temperature, data = gonad9) #not significant
+#Kruskal-Wallis chi-squared = 0.132, df = 1, p-value = 0.7164
+
+
+
+
+dunn.test(gonad9$GSI, g = gonad9$treatment)
+
+dunn.test(week8_survival$survival_rate, g = week8_survival$Treatment)
+```
+
+ANOVA
+```{r}
+anova_GSI <- function(dat){
+aov(GSI~diet,data=dat)
+}
+
+anova19 <- anova_GSI(gonad19)
+summary(anova19)
+
+Tukey19 = TukeyHSD(anova19, ordered=TRUE) 
+Tukey19
+
+anova26 <- anova_GSI(gonad26)
+summary(anova26)
+
+Tukey26 = TukeyHSD(anova26, ordered=TRUE) 
+Tukey26
+```
+

@@ -1,0 +1,415 @@
+---
+title: "parechinus_graphs"
+author: "Aimee"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(knitr)  
+setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
+```
+
+# Somatic Growth
+Load data
+```{r}
+size <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/parechinus_size.xlsx")
+
+
+weight <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/parechinus_weight.xlsx")
+
+somatic_growth <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/somatic_growth.xlsx")
+
+```
+
+
+Plot actual size 
+```{r}
+diameter_dat <- size %>% group_by(treatment,week) %>% 
+  summarise(diameter = mean(diam),
+            se = sd(diam)/sqrt(length(diam))) 
+
+diameter_dat <- inner_join(diameter_dat,size %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")  
+  
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+actual_size_plot <- diameter_dat %>%
+  ggplot(aes(x = week, y = diameter, color = diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = diameter - se, ymax = diameter + se), width = 0.2) +
+  scale_x_continuous(breaks = c(0, 4, 8, 13, 18, 23)) +
+  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin diameter (mm) over time",
+       x = "Week",
+       y = "Sea urchin diameter (mm)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_size.png"
+
+ggsave(file_path, actual_size_plot, width = 10, height = 6, units = "in")
+
+
+```
+
+Plot actual weight
+```{r}
+weight_dat <- weight %>% group_by(treatment,week) %>% 
+  summarise(weight = mean(`weight (g)`),
+            se = sd(`weight (g)`)/sqrt(length(`weight (g)`))) 
+
+weight_dat <- inner_join(weight_dat,weight %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")  
+  
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+actual_weight_plot <- weight_dat %>%
+  ggplot(aes(x = week, y = weight, color = diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = weight - se, ymax = weight + se), width = 0.2) +
+  scale_x_continuous(breaks = c(0, 4, 8, 13, 18, 23)) +
+  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin weight (g) over time",
+       x = "Week",
+       y = "Sea urchin wet weight (g)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_weight.png"
+
+ggsave(file_path, actual_weight_plot, width = 10, height = 6, units = "in")
+
+
+```
+
+
+Plot size somatic growth
+```{r}
+size_growth_dat <- somatic_growth %>% group_by(treatment,week) %>% 
+  summarise(SGR = mean(`size_specific growth rate`),
+            se = sd(`size_specific growth rate`)/sqrt(length(`size_specific growth rate`))) 
+
+size_growth_dat <- inner_join(size_growth_dat,somatic_growth %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")  
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+size_growth_plot <- size_growth_dat %>%
+  ggplot(aes(x = week, y = SGR, color = diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = SGR - se, ymax = SGR + se), width = 0.2) +
+  scale_x_continuous(breaks = c(0, 4, 8, 13, 18, 23)) +
+  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin size SGR (%growth/day) over time",
+       x = "Week",
+       y = "Size SGR (%growth/day)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_size_SGR.png"
+
+ggsave(file_path, size_growth_plot, width = 10, height = 6, units = "in")  
+
+```
+
+Plot weight somatic growth
+```{r}
+weight_growth_dat <- somatic_growth %>% group_by(treatment,week) %>% 
+  summarise(SGR = mean(`weight_specific growth rate`),
+            se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`))) 
+
+weight_growth_dat <- inner_join(weight_growth_dat,somatic_growth %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")  
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+weight_growth_plot <- weight_growth_dat %>%
+  ggplot(aes(x = week, y = SGR, color = diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = SGR - se, ymax = SGR + se), width = 0.2) +
+  scale_x_continuous(breaks = c(0, 4, 8, 13, 18, 23)) +
+  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin weight SGR (%growth/day) over time",
+       x = "Week",
+       y = "Weight SGR (%growth/day)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_weight_SGR.png"
+
+ggsave(file_path, weight_growth_plot, width = 10, height = 6, units = "in")  
+
+```
+
+# Gonad
+
+Load data
+```{r}
+gonad <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad.xlsx")
+
+```
+
+Plot GSI
+```{r}
+GSI_dat <- gonad %>% group_by(treatment,week) %>% 
+  summarise(gsi = mean(GSI),
+            se = sd(GSI)/sqrt(length(GSI))) 
+
+GSI_dat <- inner_join(GSI_dat,gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")  
+  
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+GSI_plot <- GSI_dat %>%
+  ggplot(aes(x = week, y = gsi, color = diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = gsi - se, ymax = gsi + se), width = 0.2) +
+  scale_x_continuous(breaks = c(9, 19, 26)) +
+  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin GSI (%gonad per animal) over time",
+       x = "Week",
+       y = "GSI (%)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_GSI.png"
+
+ggsave(file_path, GSI_plot, width = 10, height = 6, units = "in")
+
+
+```
+
+
+Plot gonad colour
+```{r}
+gonad_col_dat <- gonad %>% group_by(treatment,week) %>% 
+  summarise(L = mean(`L*`),
+            L_se = sd(`L*`)/sqrt(length(`L*`)), a = mean(`a*`),
+            a_se = sd(`a*`)/sqrt(length(`a*`)), b = mean(`b*`),
+            b_se = sd(`b*`)/sqrt(length(`b*`))) 
+
+gonad_col_dat <- inner_join(gonad_col_dat,gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")
+```
+
+
+
+gonad colour PCA
+```{r}
+
+Gonad_col_dat <- gonad %>% group_by(treatment,week) %>% 
+  summarise(L = mean(`L*`),
+            a = mean(`a*`),
+            b = mean(`b*`),
+           ) 
+
+Gonad_col_dat <- inner_join(Gonad_col_dat,gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")
+
+# Assuming your data frame is named 'df'
+# Replace 'YourDataFrameName' with the actual name of your data frame
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(ggrepel)
+
+# Define specific colors for each diet
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+# Select relevant columns for PCA
+pca_data <- Gonad_col_dat %>%
+  select(-treatment, -week, -temperature)  # Exclude non-numeric columns
+
+# Perform PCA
+pca_result <- prcomp(pca_data[,-c(1,5)], scale. = TRUE)
+
+# Extract standard deviations of principal components
+standard_deviations <- pca_result$sdev
+
+# Calculate the proportion of variance explained
+variance_explained <- (standard_deviations^2) / sum(standard_deviations^2)
+
+
+# Extract principal components
+pc_scores <- as.data.frame(pca_result$x)
+
+# Add treatment, temperature, and diet information to the principal components data frame
+pc_scores <- cbind(Gonad_col_dat[, c("treatment", "temperature", "diet", "week")], pc_scores)
+
+# Create a PCA plot using ggplot2 with specific colors for each diet
+gonad_col_pcaplot<- ggplot(pc_scores, aes(x = PC1, y = PC2, color = diet, shape = as.factor(temperature), label = as.factor(week))) +
+  geom_point(size = 3) +
+  scale_color_manual(values = diet_colors, name = "Diet") +
+  scale_shape_discrete(name = "Temperature") +
+  geom_text_repel(aes(label = as.factor(week)), box.padding = 0.5, point.padding = 0.3) +
+  labs(title = "PCA Plot of Color Data", x = "Principal Component 1", y = "Principal Component 2") +
+  theme_classic() +
+  geom_text(aes(x = max(pc_scores$PC1), y = min(pc_scores$PC2), label = paste0("PC1: ", round(variance_explained[1] * 100, 2), "%"), col = "black"),
+            hjust = 1, vjust = 0, size = 3) +
+  geom_text(aes(x = min(pc_scores$PC1), y = max(pc_scores$PC2), label = paste0("PC2: ", round(variance_explained[2] * 100, 2), "%"), col = "black"),
+            hjust = 0, vjust = 1, size = 3) 
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_PCA.png"
+
+ggsave(file_path, gonad_col_pcaplot, width = 10, height = 6, units = "in")
+
+
+
+
+```
+
+#Feed consumption
+
+Load data
+```{r}
+feed <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/feedconsumption.xlsx")
+```
+
+
+
+```{r}
+feed_dat <- feed %>% group_by(treatment,week) %>% 
+  summarise(feedcon = mean(`feed consumed per animal per day` ),
+            se = sd(`feed consumed per animal per day`)/sqrt(length(`feed consumed per animal per day`))) 
+
+feed_dat <- inner_join(feed_dat,feed%>% select(treatment,temperature,diet, `feed type`)%>% unique(),by = "treatment")  
+  
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+feed_plot <- feed_dat %>%
+  ggplot(aes(x = week, y = feedcon, color = diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = feedcon - se, ymax = feedcon + se), width = 0.2) +
+  scale_x_continuous(breaks = c(8, 13,18, 23)) +
+  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin feed consumption rate (feed consumed per animal per day) over time",
+       x = "Week",
+       y = "Feed consumption rate (feed consumed per animal per day)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_feed.png"
+
+ggsave(file_path, feed_plot, width = 10, height = 6, units = "in")
+```
+
+#FCR (feed consumed/weight gain)
+```{r}
+
+```
+
+
+
+#Temperature
+
+Load data
+```{r}
+temperature <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/temperature.xlsx")
+```
+
+
+Plot temperature
+```{r}
+
+temperature <- temperature %>% mutate(Date = as.Date(Date))
+
+
+temp_dat <- temperature %>% group_by(Treatment, Date) %>% 
+  summarise(temp = mean(`Temp °C` ),
+            se = sd(`Temp °C`)/sqrt(length(`Temp °C`))) 
+
+temp_colors <- c("Ambient" = "skyblue", "Warmed" = "maroon")
+
+measurement_dates <- c("2023-07-07", "2023-08-04", "2023-09-04", "2023-10-09", "2023-11-13")
+
+temp_plot <- temp_dat %>%
+  ggplot(aes(x = Date, y = temp, color = Treatment)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = temp - se, ymax = temp + se), width = 0.2) + geom_vline(xintercept = as.Date(measurement_dates), linetype = "dashed", color = "grey") +
+  scale_color_manual(values = temp_colors) + labs(title = "Temperature record (°C) for ambient and warmed treatment tanks",
+       x = "Date",
+       y = "Temperature (°C)",
+       color = "Temperature Treatment")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/temperature.png"
+
+ggsave(file_path, temp_plot, width = 10, height = 6, units = "in")
+```
+
+```{r}
+temp_dat_ave <- temperature %>% group_by(Treatment) %>% 
+  summarise(temp = mean(`Temp °C` ),
+            se = sd(`Temp °C`)/sqrt(length(`Temp °C`))) 
+```
+
+#Survival (CONTINUE HERE)
+
+Load data
+```{r}
+survival <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/survival.xlsx")
+```
+
+Plot survival
+```{r}
+
+survival$Treatment <- paste0(substr(survival$Diet, 1, 1), substr(survival$Temperature, 1, 1))
+
+survival <- survival %>% group_by(Treatment) %>% mutate(CumulativeLost= cumsum(Lost))
+
+survival <-survival %>% group_by(Treatment) %>% mutate(survival_rate = 100*( (76-CumulativeLost)/76))
+
+survival_dat <- survival %>% group_by(Treatment,Week) %>% 
+  summarise(survivalrate = mean(`survival_rate`),
+            se = sd(`survival_rate`)/sqrt(length(`survival_rate`))) 
+
+survival_dat <- inner_join(survival_dat,survival%>% select(Treatment,Temperature,Diet)%>% unique(),by = "Treatment")  
+  
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+survival_plot <- survival_dat %>%
+  ggplot(aes(x = Week, y = survivalrate, color = Diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), width = 0.2) +
+    facet_wrap(~ Temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin survival rate (%) over time",
+       x = "Week",
+       y = "Survival rate (%)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival.png"
+
+ggsave(file_path, survival_plot, width = 10, height = 6, units = "in")
+
+```
+
+```{r}
+week8_survival <- survival %>% filter(Week == 8)
+week8_survival_plot <- week8_survival %>% 
+  ggplot(aes(x = Treatment, y = survival_rate, color = Diet)) +
+  geom_boxplot() + scale_color_manual(values = diet_colors)+labs(title = "Cape sea urchin survival rate (%) at week 8",
+       x = "Treatment",
+       y = "Survival rate (%)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_week8_survival.png"
+
+ggsave(file_path, week8_survival_plot, width = 10, height = 6, units = "in")
+
+week8_survival_summary <- survival_dat %>% filter(Week == 8)
+  
+```
+
