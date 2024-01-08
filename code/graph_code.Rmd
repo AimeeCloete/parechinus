@@ -361,24 +361,38 @@ survival <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDri
 
 Plot survival
 ```{r}
+library(tidyverse)
+
 
 survival$Treatment <- paste0(substr(survival$Diet, 1, 1), substr(survival$Temperature, 1, 1))
 
-survival <- survival %>% group_by(Treatment) %>% mutate(CumulativeLost= cumsum(Lost))
+survival_zeroed <- survival %>%
+  mutate(across(everything(), ~ifelse(is.na(.), 0, .)))
 
-survival <-survival %>% group_by(Treatment) %>% mutate(survival_rate = 100*( (76-CumulativeLost)/76))
+survival <- survival_zeroed %>% group_by(Tank, Week) %>%  mutate(Unhealthy = sum(Mortalities, Morbidities))
 
-survival_dat <- survival %>% group_by(Treatment,Week) %>% 
-  summarise(survivalrate = mean(`survival_rate`),
-            se = sd(`survival_rate`)/sqrt(length(`survival_rate`))) 
 
-survival_dat <- inner_join(survival_dat,survival%>% select(Treatment,Temperature,Diet)%>% unique(),by = "Treatment")  
-  
+survival <- survival %>% group_by(Tank) %>% mutate(CumMort= cumsum(`Mortalities`), CumUnhealthy = cumsum(Unhealthy))
+
+
+survival <-survival %>% group_by(Tank) %>% mutate(survival_rate_mort = 100*( (19-CumMort)/19),survival_rate_unhealthy = 100*( (19-CumUnhealthy)/19) )
+
+survival_dat_mort <- survival %>% group_by(Treatment,Week) %>% 
+  summarise(survivalrate = mean(`survival_rate_mort`),
+            se = sd(`survival_rate_mort`)/sqrt(length(`survival_rate_mort`))) 
+
+survival_dat_unhealthy <- survival %>% group_by(Treatment,Week) %>% 
+  summarise(survivalrate = mean(`survival_rate_unhealthy`),
+            se = sd(`survival_rate_unhealthy`)/sqrt(length(`survival_rate_unhealthy`))) 
+
+survival_dat_mort <- inner_join(survival_dat_mort,survival%>% select(Treatment,Temperature,Diet)%>% unique(),by = "Treatment")  
+
+survival_dat_unhealthy <- inner_join(survival_dat_unhealthy,survival%>% select(Treatment,Temperature,Diet)%>% unique(),by = "Treatment")    
 
 diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
 
-
-survival_plot <- survival_dat %>%
+#MORTALITY
+survival_plot1 <- survival_dat_mort %>%
   ggplot(aes(x = Week, y = survivalrate, color = Diet)) +
   geom_line() +
   geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), width = 0.2) +
@@ -389,9 +403,57 @@ survival_plot <- survival_dat %>%
        color = "Diet")+
   theme_classic() + theme(plot.title = element_text(hjust = 0.5))
 
-file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival.png"
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival1_morts.png"
 
-ggsave(file_path, survival_plot, width = 10, height = 6, units = "in")
+ggsave(file_path, survival_plot1, width = 10, height = 6, units = "in")
+
+
+#MORBIDITY
+morb <- survival_zeroed %>% group_by(Tank) %>% mutate(CumMorb= cumsum(`Morbidities`))
+
+morb <-morb %>% group_by(Tank) %>% mutate(survival_rate = 100*( (19-CumMorb)/19))
+
+morb_dat <- morb%>% group_by(Treatment,Week) %>% 
+  summarise(survivalrate = mean(`survival_rate`),
+            se = sd(`survival_rate`)/sqrt(length(`survival_rate`))) 
+
+morb_dat <- inner_join(morb_dat,survival%>% select(Treatment,Temperature,Diet)%>% unique(),by = "Treatment")  
+  
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+survival_plot2 <- morb_dat %>%
+  ggplot(aes(x = Week, y = survivalrate, color = Diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), width = 0.2) +
+    facet_wrap(~ Temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin survival rate (%) over time",
+       x = "Week",
+       y = "Survival rate (%)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival2_morbs.png"
+
+ggsave(file_path, survival_plot2, width = 10, height = 6, units = "in")
+
+#Unhealthy
+
+survival_plot3 <- survival_dat_unhealthy %>%
+  ggplot(aes(x = Week, y = survivalrate, color = Diet)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), width = 0.2) +
+    facet_wrap(~ Temperature, scales = "free_x", ncol = 2) +
+  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin survival rate (%) over time",
+       x = "Week",
+       y = "Survival rate (%)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival3_mortmorb.png"
+
+ggsave(file_path, survival_plot3, width = 10, height = 6, units = "in")
 
 ```
 

@@ -19,9 +19,12 @@ survival <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDri
 
 survival$Treatment <- paste0(substr(survival$Diet, 1, 1), substr(survival$Temperature, 1, 1))
 
-survival <- survival %>% group_by(Treatment) %>% mutate(CumulativeLost= cumsum(Lost))
+survival <- survival %>%
+  mutate(across(everything(), ~ifelse(is.na(.), 0, .)))
 
-survival <-survival %>% group_by(Treatment) %>% mutate(survival_rate = 100*( (76-CumulativeLost)/76))
+survival <- survival %>% group_by(Tank) %>% mutate(CumMort= cumsum(Mortalities), CumMorb = cumsum(Morbidities))
+
+survival <-survival %>% group_by(Tank) %>% mutate(survival_rate = 100*( (19-CumMort)/19))
 
 
 ```
@@ -35,29 +38,37 @@ For Levene: If p < 0.05, the treatment group data does not have equal variances
 ```{r}
 
 final_survival <- survival %>% filter(Week == 24)
-week8_survival <- survival%>% filter(Week == 8)
+week4_survival <- survival%>% filter(Week == 4)
+week9_survival <- survival%>% filter(Week == 9)
+week13_survival <- survival%>% filter(Week == 13)
+week18_survival <- survival%>% filter(Week == 18)
+week23_survival <- survival%>% filter(Week == 23)
 
-shapiro.test(week8_survival$survival_rate) #not normal
-#W = 0.82452, p-value = 0.0001221
+shapiro.test(week4_survival$survival_rate) # not normal
 
+shapiro.test(week9_survival$survival_rate) #not normal
+
+
+
+shapiro.test(week13_survival$survival_rate) # not normal
+
+shapiro.test(week18_survival$survival_rate) # not normal
+
+shapiro.test(week23_survival$survival_rate) # not normal
 
 shapiro.test(final_survival$survival_rate) #not normal
-#W = 0.8611, p-value = 0.003538
+
 
 shapiro.test(survival$survival_rate) #not normal
-#W = 0.82159, p-value < 2.2e-16
+
 
 require("car")
 
-leveneTest(week8_survival$survival_rate~week8_survival$Treatment) #equal
-#      Df F value  Pr(>F)  
-#group  7  2.0566 0.08893 .
-#      24             
+leveneTest(week9_survival$survival_rate~week9_survival$Treatment) # not equal
+         
 
 leveneTest(final_survival$survival_rate~final_survival$Treatment) #equal
-#      Df F value Pr(>F)
-#group  5  1.6273 0.2035
-#      18         
+        
 
 ```
 
@@ -69,12 +80,23 @@ require("dunn.test")
 #install.packages("coin", dependencies = TRUE)
 require(coin)
 
-kruskal.test(survival_rate ~ Treatment, data = week8_survival) 
-#significant: Kruskal-Wallis chi-squared = 18.163, df = 7, p-value = 0.01126
+kruskal.test(survival_rate ~ Treatment, data = week23_survival) #not sig
 
-dunn.test(week8_survival$survival_rate, g = week8_survival$Treatment)
+kruskal.test(survival_rate ~ Treatment, data = week9_survival) 
+#significant: 
+
+dunn.test(week9_survival$survival_rate, g = week9_survival$Treatment)
+
+kruskal.test(survival_rate ~ Diet, data = week9_survival) 
+#significant: 
+
+dunn.test(week9_survival$survival_rate, g = week9_survival$Diet)
 
 
+
+survival %>% filter(Diet == "kelp", Week == 9) %>% group_by(Treatment, Week) %>% summarise(survival_mean = mean(survival_rate), SGR_se = sd(survival_rate)/sqrt(length(survival_rate)))
+
+#survival %>% filter(Diet == "kelp", Week == 9) %>% group_by(Treatment, Week) %>% summarise(morb_mean = mean(CumMorb), SGR_se = sd(CumMorb)/sqrt(length(CumMorb)))
 ```
 
 
@@ -123,19 +145,24 @@ leveneTest(weight$`weight (g)`~weight$treatment) #not equal p= 2.937e-07 ***
 SGR values at weekly intervals
 Normality & Homoscedasticity tests
 ```{r}
+require("car")
 
 weight_SGR_prior_tests <- function(data){
   shapiro <- shapiro.test(data$`weight_specific growth rate`)
   levene <- leveneTest(data$`weight_specific growth rate`~data$treatment)
+  bartlett<- bartlett.test(data$`weight_specific growth rate`~data$treatment)
   print(shapiro)
   print(levene)
+  print(bartlett)
 }
 
 size_SGR_prior_tests <- function(data){
   shapiro <- shapiro.test(data$`size_specific growth rate`)
   levene <- leveneTest(data$`size_specific growth rate`~data$treatment)
+  bartlett<- bartlett.test(data$`size_specific growth rate`~data$treatment)
   print(shapiro)
   print(levene)
+  print(bartlett)
 }
 
 SGR4 <- somatic_growth %>% filter(week == 4)
@@ -143,6 +170,21 @@ SGR8 <- somatic_growth %>% filter(week == 8)
 SGR13 <- somatic_growth %>% filter(week == 13)
 SGR18 <- somatic_growth %>% filter(week == 18)
 SGR23 <- somatic_growth %>% filter(week == 23)
+
+somatic_growth$week <- as.factor(somatic_growth$week)
+SGRma <- somatic_growth %>% filter(treatment == "ma")
+SGRmw <- somatic_growth %>% filter(treatment == "mw")
+SGRua <- somatic_growth %>% filter(treatment == "ua")
+SGRuw <- somatic_growth %>% filter(treatment == "uw")
+SGRfa <- somatic_growth %>% filter(treatment == "fa")
+SGRfw <- somatic_growth %>% filter(treatment == "fw")
+SGRka <- somatic_growth %>% filter(treatment == "ka")
+SGRkw <- somatic_growth %>% filter(treatment == "kw")
+
+SGRf <- somatic_growth %>% filter(diet == "formulated")
+SGRm <- somatic_growth %>% filter(diet == "mixed")
+SGRk <- somatic_growth %>% filter(diet == "kelp")
+SGRu <- somatic_growth %>% filter(diet == "ulva")
   
 weight_SGR_prior_tests(SGR4) #normal & equal - ANOVA
 weight_SGR_prior_tests(SGR8) #normal & NOT equal - welch ANOVA
@@ -166,9 +208,11 @@ anova_weight_SGR <- function(dat){
 aov(`weight_specific growth rate`~diet*temperature,data=dat)
 }
 w_anova4<- anova_weight_SGR(SGR4)
+oneway.test(`weight_specific growth rate`~temperature, data = SGR8, var.equal = FALSE) #not significant
 w_anova13<- anova_weight_SGR(SGR13)
 w_anova18<- anova_weight_SGR(SGR18)
 w_anova23<- anova_weight_SGR(SGR23)
+
 summary(w_anova4)
 
 summary(w_anova13)
@@ -189,6 +233,8 @@ summary(s_anova13)
 summary(s_anova18)
 summary(s_anova23)
 
+t<- aov(`size_specific growth rate`~week, data = somatic_growth)
+summary(t)
 
 
 ```
@@ -197,20 +243,272 @@ summary(s_anova23)
 
 Post hoc
 ```{r}
-Tukey4 = TukeyHSD(w_anova4, ordered=TRUE) 
+
+#WEIGHT
+
+  #week 4
+w_anova4 <- aov(`weight_specific growth rate`~diet, data = SGR4)
+summary(w_anova4)
+Tukey4 = TukeyHSD(w_anova4, ordered = TRUE)
 Tukey4
+
+  #week 13
+w_anova13 <- aov(`weight_specific growth rate`~treatment, data = SGR13)
+summary(w_anova13)
+Tukey13 = TukeyHSD(w_anova13, ordered = TRUE)
+Tukey13
+
+
+w_anova13 <- aov(`weight_specific growth rate`~diet, data = SGR13)
+summary(w_anova13)
+Tukey13 = TukeyHSD(w_anova13, ordered = TRUE)
+Tukey13
+
+
+t.test(`weight_specific growth rate`~temperature, data = SGR13[SGR13$diet == "ulva",], alternative = "greater", var.equal=T) #within diets
+
+t.test(`weight_specific growth rate`~temperature, data = SGR13, alternative = "greater", var.equal=T) #across all diets
+
+  #week 18
+w_anova18 <- aov(`weight_specific growth rate`~diet, data = SGR18)
+summary(w_anova18)
+Tukey18 = TukeyHSD(w_anova18, ordered = TRUE)
+Tukey18
+
+  #week 23
+w_anova23 <- aov(`weight_specific growth rate`~diet, data = SGR23)
+summary(w_anova23)
+Tukey23 = TukeyHSD(w_anova23, ordered = TRUE)
+Tukey23
+
+w_anova23 <- aov(`weight_specific growth rate`~diet + temperature, data = SGR23)
+summary(w_anova23)
+Tukey23 = TukeyHSD(w_anova23, ordered = TRUE)
+Tukey23
+
+t.test(`weight_specific growth rate`~temperature, data = SGR23, alternative = "less", var.equal=T) #across all diets
+
+t.test(`weight_specific growth rate`~temperature, data = SGR23[SGR23$diet == "formulated",], alternative = "less", var.equal=T) #within ulva
+
+#SIZE
+
+s_anova13<- aov(`size_specific growth rate`~diet, data = SGR13)
+summary(s_anova13)
+
+Tukey13 = TukeyHSD(s_anova13, ordered = TRUE)
+Tukey13
+
+s_anova18<- aov(`size_specific growth rate`~diet, data = SGR18)
+summary(s_anova18)
+
+Tukey18 = TukeyHSD(s_anova18, ordered = TRUE)
+Tukey18
+
+t.test(`size_specific growth rate`~temperature, data = SGR23, alternative = "greater", var.equal=T)
+
+
+
 ```
 
 
 
 Averages
 ```{r}
+#WEIGHT
 SGR4 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`weight_specific growth rate`), SGR_se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`)))
 
+SGR8 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`weight_specific growth rate`), SGR_se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`)))
 
+
+SGR13 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`weight_specific growth rate`), SGR_se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`)))
+
+SGR13 %>% filter(diet != "kelp") %>% group_by(temperature) %>% summarise(SGR_mean = mean(`weight_specific growth rate`), SGR_se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`)))
+
+SGR18 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`weight_specific growth rate`), SGR_se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`)))
+
+SGR23 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`weight_specific growth rate`), SGR_se = sd(`weight_specific growth rate`)/sqrt(length(`weight_specific growth rate`)))
+
+#SIZE
+SGR4 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`size_specific growth rate`), SGR_se = sd(`size_specific growth rate`)/sqrt(length(`size_specific growth rate`)))
+
+SGR8 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`size_specific growth rate`), SGR_se = sd(`size_specific growth rate`)/sqrt(length(`size_specific growth rate`)))
+
+SGR13 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`size_specific growth rate`), SGR_se = sd(`size_specific growth rate`)/sqrt(length(`size_specific growth rate`)))
+
+SGR18 %>% group_by(treatment) %>% summarise(SGR_mean = mean(`size_specific growth rate`), SGR_se = sd(`size_specific growth rate`)/sqrt(length(`size_specific growth rate`)))
+
+SGR23 %>% group_by(temperature) %>% summarise(SGR_mean = mean(`size_specific growth rate`), SGR_se = sd(`size_specific growth rate`)/sqrt(length(`size_specific growth rate`)))
+
+```
+
+Looking within treatments over time
+```{r}
+require(car)
+
+somatic_growth$week <- as.factor(somatic_growth$week)
+SGRma <- somatic_growth %>% filter(treatment == "ma")
+SGRmw <- somatic_growth %>% filter(treatment == "mw")
+SGRua <- somatic_growth %>% filter(treatment == "ua")
+SGRuw <- somatic_growth %>% filter(treatment == "uw")
+SGRfa <- somatic_growth %>% filter(treatment == "fa")
+SGRfw <- somatic_growth %>% filter(treatment == "fw")
+SGRka <- somatic_growth %>% filter(treatment == "ka")
+SGRkw <- somatic_growth %>% filter(treatment == "kw")
+  
+weight_SGR_prior_tests_ot <- function(data){
+  shapiro <- shapiro.test(data$`weight_specific growth rate`)
+  levene <- leveneTest(data$`weight_specific growth rate`~data$week)
+  bartlett<- bartlett.test(data$`weight_specific growth rate`~data$week)
+  print(shapiro)
+  print(levene)
+  print(bartlett)
+}
+
+size_SGR_prior_tests_ot <- function(data){
+  shapiro <- shapiro.test(data$`size_specific growth rate`)
+  levene <- leveneTest(data$`size_specific growth rate`~data$week)
+  bartlett<- bartlett.test(data$`size_specific growth rate`~data$week)
+  print(shapiro)
+  print(levene)
+  print(bartlett)
+}
+
+
+weight_SGR_prior_tests_ot(SGRma)#normal & equal - ANOVA
+weight_SGR_prior_tests_ot(SGRmw) #normal & equal - ANOVA
+weight_SGR_prior_tests_ot(SGRuw) #normal & equal - ANOVA
+weight_SGR_prior_tests_ot(SGRua) #normal & equal - ANOVA
+weight_SGR_prior_tests_ot(SGRfa) #normal & equal - ANOVA
+weight_SGR_prior_tests_ot(SGRfw) #normal & equal - ANOVA
+weight_SGR_prior_tests_ot(SGRka) #not normal & not equal (Bartlett equal) - Kruskal Wallis
+weight_SGR_prior_tests_ot(SGRkw) #normal and equal - ANOVA
+
+size_SGR_prior_tests_ot(SGRma)#normal & equal - ANOVA
+size_SGR_prior_tests_ot(SGRmw) #normal & equal - ANOVA
+size_SGR_prior_tests_ot(SGRuw) #normal & not equal (Bartlett equal) - Welch ANOVA
+size_SGR_prior_tests_ot(SGRua) #normal & equal - ANOVA
+size_SGR_prior_tests_ot(SGRfa) #not normal & not equal - Kruskal Wallis
+size_SGR_prior_tests_ot(SGRfw) #normal & equal - ANOVA
+size_SGR_prior_tests_ot(SGRka) #normal & equal - ANOVA
+size_SGR_prior_tests_ot(SGRkw) #normal & equal - ANOVA
 
 
 ```
+
+
+
+
+
+
+```{r}
+
+SGR48 <- SGR4 %>% bind_rows(SGR8)
+SGR813 <- SGR8 %>% bind_rows(SGR13)
+
+
+
+require("dunn.test")
+#install.packages("coin", dependencies = TRUE)
+require(coin)
+
+#WEIGHT
+
+anova_weight_SGR <- function(dat){
+aov(`weight_specific growth rate`~week,data=dat)
+}
+
+t.test(`weight_specific growth rate`~week, data = SGRka, alternative = "less", var.equal=F)
+
+kruskal_test(`weight_specific growth rate`~week, data = SGRka)
+
+kw_anova<- anova_weight_SGR(SGRkw)
+summary(kw_anova) #significant
+
+t.test(`weight_specific growth rate`~week, data = SGRkw, alternative = "less", var.equal=T)
+
+t.test(`weight_specific growth rate`~week, data = SGR48[SGR48$treatment=="kw",],alternative = "less", var.equal=T)
+
+
+#SIZE
+anova_size_SGR <- function(dat){
+aov(`size_specific growth rate`~week,data=dat)
+}
+
+
+ka_anova<- anova_size_SGR(SGRka)
+summary(ka_anova) #no significant differences
+
+kw_anova<- anova_size_SGR(SGRkw)
+summary(kw_anova) #no significant differences
+
+ma_anova<- anova_size_SGR(SGRma)
+summary(ma_anova) #significant - continue to Tukey
+
+mw_anova<- anova_size_SGR(SGRmw)
+summary(mw_anova) #significant - continue to Tukey
+
+kruskal.test(`size_specific growth rate` ~ week, data = SGRfa)
+#significant - continue to Dunn
+
+fw_anova<- anova_size_SGR(SGRfw)
+summary(fw_anova) #not significant
+
+ua_anova<- anova_size_SGR(SGRua)
+summary(ua_anova) #not significant
+
+
+uw_anova<- anova_size_SGR(SGRuw)
+summary(uw_anova) #not significant
+
+Tukeyma = TukeyHSD(ma_anova, ordered = TRUE)
+Tukeyma
+
+Tukeymw = TukeyHSD(mw_anova, ordered = TRUE)
+Tukeymw
+
+
+kruskal.test(survival_rate ~ Treatment, data = week8_survival) 
+#significant: Kruskal-Wallis chi-squared = 18.163, df = 7, p-value = 0.01126
+
+dunn.test(SGRfa$`size_specific growth rate` , g = SGRfa$week)
+
+
+t.test(`size_specific growth rate`~week, data = SGR813[SGR813$treatment=="ma",],alternative = "less", var.equal=T)
+
+
+
+
+
+
+anova_weight_SGR <- function(dat){
+aov(`weight_specific growth rate`~week,data=dat)
+}
+
+ka_anova<- anova_weight_SGR(SGRka)
+summary(ka_anova) #no significant differences
+
+kw_anova<- anova_weight_SGR(SGRkw)
+summary(kw_anova) #significant - continue to Tukey
+
+ma_anova<- anova_size_SGR(SGRma)
+summary(ma_anova) #significant - continue to Tukey
+
+mw_anova<- anova_size_SGR(SGRmw)
+summary(mw_anova) #significant - continue to Tukey
+
+fa_anova<- anova_size_SGR(SGRfa)
+summary(fa_anova) #not significant
+
+fw_anova<- anova_size_SGR(SGRfw)
+summary(fw_anova) #not significant
+
+ua_anova<- anova_size_SGR(SGRua)
+summary(ua_anova) #not significant
+
+uw_anova<- anova_size_SGR(SGRuw)
+summary(uw_anova) #not significant
+```
+
 
 
 #Gonad
