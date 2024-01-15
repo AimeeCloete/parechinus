@@ -39,34 +39,47 @@ diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "
 
 
 #actual_size_plot <- 
-diameter_dat %>%
-  ggplot(aes(x = week, y = diameter, color = diet)) +
-  geom_bar() +
-  geom_errorbar(aes(ymin = diameter - se, ymax = diameter + se), width = 0.2) +
-  scale_x_continuous(breaks = c(0, 4, 8, 13, 18, 23)) +
-  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
-  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin diameter (mm) over time",
-       x = "Week",
-       y = "Sea urchin diameter (mm)",
-       color = "Diet")+
+# #diameter_dat %>%
+#   ggplot(aes(x = week, y = diameter, color = diet)) +
+#   geom_bar() +
+#   geom_errorbar(aes(ymin = diameter - se, ymax = diameter + se), width = 0.2) +
+#   scale_x_continuous(breaks = c(0, 4, 8, 13, 18, 23)) +
+#   facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+#   scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin diameter (mm) over time",
+#        x = "Week",
+#        y = "Sea urchin diameter (mm)",
+#        color = "Diet")+
+#   theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+#file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_size.png"
+
+#ggsave(file_path, actual_size_plot, width = 10, height = 6, units = "in")
+
+new_actual_size_plot <- diameter_dat %>%
+  ggplot(aes(x = temperature, y = diameter, fill = diet)) +
+  geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) +
+  geom_errorbar(aes(ymin = diameter - se, ymax = diameter + se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 2, labeller = labeller(week = week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin test diameter (mm) over time",
+       x = "Temperature",
+       y = "Sea urchin test diameter (mm)",
+       fill = "Diet")+
   theme_classic() + theme(plot.title = element_text(hjust = 0.5))
 
-file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_size.png"
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_size_new.png"
 
-ggsave(file_path, actual_size_plot, width = 10, height = 6, units = "in")
-
-
+ggsave(file_path, new_actual_size_plot, width = 10, height = 6, units = "in")
 ```
 
 
 ```{r}
 diameter_dat %>%
-  ggplot(aes(x = week, y = diameter, fill = diet)) +
+  ggplot(aes(x = temperature, y = diameter, fill = diet)) +
   geom_col(position = "dodge", color = "black") +
   geom_errorbar(aes(ymin = diameter - se, ymax = diameter + se),
                 position = position_dodge(width = 0.9), width = 0.2) +
   scale_x_continuous(breaks = c(0, 4, 8, 13, 18, 23)) +
-  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
+  facet_wrap(~ week, ncol = 2, labeller = labeller(week = week.labs)) +
   scale_fill_manual(values = diet_colors) + 
   labs(title = "Cape sea urchin diameter (mm) over time",
        x = "Week",
@@ -105,6 +118,9 @@ weight_dat <- inner_join(weight_dat,weight %>% select(treatment,temperature,diet
 
 diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
 
+#New facet label names for week variable
+week.labs <- c("week 0", "week 4", "week 8", "week 13", "week 18", "week 23")
+names(week.labs) <- c("0","4", "8", "13", "18", "23")
 
 actual_weight_plot <- weight_dat %>%
   ggplot(aes(x = week, y = weight, color = diet)) +
@@ -122,6 +138,22 @@ file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - Unive
 
 ggsave(file_path, actual_weight_plot, width = 10, height = 6, units = "in")
 
+#new plot
+new_actual_weight_plot <- weight_dat %>%
+  ggplot(aes(x = temperature, y = weight, fill = diet)) +
+  geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) +
+  geom_errorbar(aes(ymin = weight - se, ymax = weight + se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 2, labeller = labeller(week = week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin weight (g) over time",
+       x = "Temperature",
+       y = "Sea urchin wet weight (g)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_weight_new.png"
+
+
+ggsave(file_path, new_actual_weight_plot, width = 10, height = 6, units = "in")
 
 ```
 
@@ -151,6 +183,8 @@ size_growth_plot <- size_growth_dat %>%
 file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_size_SGR.png"
 
 ggsave(file_path, size_growth_plot, width = 10, height = 6, units = "in")  
+
+
 
 ```
 
@@ -238,20 +272,28 @@ Load data
 ```{r}
 gonad <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad.xlsx")
 
+f_gonad <- gonad %>% filter(sex == "female")
+m_gonad <- gonad %>% filter(sex == "male")
 ```
 
 Plot GSI
 ```{r}
+#all
 GSI_dat <- gonad %>% group_by(treatment,week) %>% 
   summarise(gsi = mean(GSI),
             se = sd(GSI)/sqrt(length(GSI))) 
 
 GSI_dat <- inner_join(GSI_dat,gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")  
-  
+#female
+GSI_dat_f <- f_gonad %>% group_by(treatment,week) %>% 
+  summarise(gsi = mean(GSI),
+            se = sd(GSI)/sqrt(length(GSI))) 
+
+GSI_dat_f <- inner_join(GSI_dat_f,f_gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")    
 
 diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
 
-
+#all
 GSI_plot <- GSI_dat %>%
   ggplot(aes(x = week, y = gsi, color = diet)) +
   geom_line() +
@@ -272,8 +314,36 @@ ggsave(file_path, GSI_plot, width = 10, height = 6, units = "in")
 ```
 
 
+
+
+```{r}
+
+# New facet label names for week variable
+week.labs <- c("week 9", "week 19", "week 26")
+names(week.labs) <- c("9", "19", "26")
+
+new_gsi_plot <- GSI_dat %>%
+  ggplot(aes(x = temperature, y = gsi, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = gsi - se, ymax = gsi + se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin GSI (%)(wet gonad weight/wet whole urchin weight) over time",
+       x = "Temperature",
+       y = "GSI (%)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_GSI_new.png"
+
+ggsave(file_path, new_gsi_plot, width = 14, height = 6, units = "in")
+
+
+```
+
+
+
 Plot gonad colour
 ```{r}
+#all
 gonad_col_dat <- gonad %>% group_by(treatment,week) %>% 
   summarise(L = mean(`L*`),
             L_se = sd(`L*`)/sqrt(length(`L*`)), a = mean(`a*`),
@@ -281,9 +351,202 @@ gonad_col_dat <- gonad %>% group_by(treatment,week) %>%
             b_se = sd(`b*`)/sqrt(length(`b*`))) 
 
 gonad_col_dat <- inner_join(gonad_col_dat,gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")
+
+#female
+gonad_col_dat_f <- f_gonad %>% group_by(treatment,week) %>% 
+  summarise(L = mean(`L*`),
+            L_se = sd(`L*`)/sqrt(length(`L*`)), a = mean(`a*`),
+            a_se = sd(`a*`)/sqrt(length(`a*`)), b = mean(`b*`),
+            b_se = sd(`b*`)/sqrt(length(`b*`))) 
+
+gonad_col_dat_f <- inner_join(gonad_col_dat_f,f_gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")
+
+#male
+gonad_col_dat_m <- m_gonad %>% group_by(treatment,week) %>% 
+  summarise(L = mean(`L*`),
+            L_se = sd(`L*`)/sqrt(length(`L*`)), a = mean(`a*`),
+            a_se = sd(`a*`)/sqrt(length(`a*`)), b = mean(`b*`),
+            b_se = sd(`b*`)/sqrt(length(`b*`))) 
+
+gonad_col_dat_m <- inner_join(gonad_col_dat_m,m_gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")
+
+# New facet label names for week variable
+week.labs <- c("week 9", "week 19", "week 26")
+names(week.labs) <- c("9", "19", "26")
+
+#lightness
+gonad_col_L_plot <- gonad_col_dat %>%
+  ggplot(aes(x = temperature, y = L, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = L - L_se, ymax = L + L_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE L*(Lightness) over time",
+       x = "Temperature",
+       y = "CIE L*(Lightness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_L.png"
+
+ggsave(file_path, gonad_col_L_plot, width = 14, height = 6, units = "in")
+
+#redness
+gonad_col_a_plot <- gonad_col_dat %>%
+  ggplot(aes(x = temperature, y = a, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = a - a_se, ymax = a + a_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE a*(Redness) over time",
+       x = "Temperature",
+       y = "CIE a*(Redness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_a.png"
+
+ggsave(file_path, gonad_col_a_plot, width = 14, height = 6, units = "in")
+
+#yellowness
+gonad_col_b_plot <- gonad_col_dat %>%
+  ggplot(aes(x = temperature, y = b, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = b - b_se, ymax = b + b_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE b*(Yellowness) over time",
+       x = "Temperature",
+       y = "CIE b*(Yellowness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_b.png"
+
+ggsave(file_path, gonad_col_b_plot, width = 14, height = 6, units = "in")
+
+
+```
+
+Plot gonad colour for male/female seperately
+```{r}
+
+rm(t_gonad_col_dat)
+f_gonad <- gonad %>% filter(sex == "female")
+m_gonad <- gonad %>% filter(sex == "male")
+f_gonad_col_dat <- f_gonad %>% group_by(treatment,week) %>% 
+  summarise(L = mean(`L*`),
+            L_se = sd(`L*`)/sqrt(length(`L*`)), a = mean(`a*`),
+            a_se = sd(`a*`)/sqrt(length(`a*`)), b = mean(`b*`),
+            b_se = sd(`b*`)/sqrt(length(`b*`))) 
+
+f_gonad_col_dat <- inner_join(f_gonad_col_dat,gonad %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")
+
+gonad_col_dat_F <- gonad_col_dat[gonad_col_dat$sex == "female",]
+gonad_col_dat_M <- gonad_col_dat[gonad_col_dat$sex == "male",]
+
+# New facet label names for week variable
+week.labs <- c("week 9", "week 19", "week 26")
+names(week.labs) <- c("9", "19", "26")
+
+
+```
+
+female gonad colour plots
+
+```{r}
+#lightness
+gonad_col_L_plot_F <- gonad_col_dat_F %>%
+  ggplot(aes(x = temperature, y = L, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = L - L_se, ymax = L + L_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE L*(Lightness) over time",
+       x = "Temperature",
+       y = "CIE L*(Lightness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_L_female.png"
+
+ggsave(file_path, gonad_col_L_plot_F, width = 14, height = 6, units = "in")
+
+#redness
+gonad_col_a_plot_F <- gonad_col_dat_F %>%
+  ggplot(aes(x = temperature, y = a, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = a - a_se, ymax = a + a_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE a*(Redness) over time",
+       x = "Temperature",
+       y = "CIE a*(Redness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_a_female.png"
+
+ggsave(file_path, gonad_col_a_plot_F, width = 14, height = 6, units = "in")
+
+#yellowness
+gonad_col_b_plot <- gonad_col_dat_F %>%
+  ggplot(aes(x = temperature, y = b, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = b - b_se, ymax = b + b_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE b*(Yellowness) over time",
+       x = "Temperature",
+       y = "CIE b*(Yellowness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_b.png"
+
+ggsave(file_path, gonad_col_b_plot, width = 14, height = 6, units = "in")
+
+
 ```
 
 
+male gonad colour plots
+```{r}
+#lightness
+gonad_col_L_plot <- gonad_col_dat %>%
+  ggplot(aes(x = temperature, y = L, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = L - L_se, ymax = L + L_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE L*(Lightness) over time",
+       x = "Temperature",
+       y = "CIE L*(Lightness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_L.png"
+
+ggsave(file_path, gonad_col_L_plot, width = 14, height = 6, units = "in")
+
+#redness
+gonad_col_a_plot <- gonad_col_dat %>%
+  ggplot(aes(x = temperature, y = a, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = a - a_se, ymax = a + a_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE a*(Redness) over time",
+       x = "Temperature",
+       y = "CIE a*(Redness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_a.png"
+
+ggsave(file_path, gonad_col_a_plot, width = 14, height = 6, units = "in")
+
+#yellowness
+gonad_col_b_plot <- gonad_col_dat %>%
+  ggplot(aes(x = temperature, y = b, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = b - b_se, ymax = b + b_se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad CIE b*(Yellowness) over time",
+       x = "Temperature",
+       y = "CIE b*(Yellowness)",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_b.png"
+
+ggsave(file_path, gonad_col_b_plot, width = 14, height = 6, units = "in")
+
+
+```
 
 gonad colour PCA
 ```{r}
@@ -315,6 +578,11 @@ pca_data <- Gonad_col_dat %>%
 # Perform PCA
 pca_result <- prcomp(pca_data[,-c(1,5)], scale. = TRUE)
 
+#Visualise eigenvalues (percentage of variances explained by each principal compenent)
+install.packages("factoextra")
+library(factoextra)
+fviz_eig(pca_result)
+fviz_pca_var(pca_result, col.var = "contrib", gradient.col = "black", repel = TRUE)
 # Extract standard deviations of principal components
 standard_deviations <- pca_result$sdev
 
@@ -346,6 +614,42 @@ file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - Unive
 ggsave(file_path, gonad_col_pcaplot, width = 10, height = 6, units = "in")
 
 
+
+
+```
+
+
+
+gonad stage 
+```{r}
+# New facet label names for week variable
+week.labs <- c("week 9", "week 19", "week 26")
+names(week.labs) <- c("9", "19", "26")
+
+diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
+
+
+gonad_stage <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad_stage.xlsx")
+
+stage_dat <- gonad_stage %>% group_by(treatment,week) %>% 
+  summarise(gstage = mean(stage_nr),
+            se = sd(stage_nr)/sqrt(length(stage_nr))) 
+
+stage_dat <- inner_join(stage_dat,gonad_stage %>% select(treatment,temperature,diet)%>% unique(),by = "treatment")  
+
+gonad_stage_plot <- stage_dat %>%
+  ggplot(aes(x = temperature, y = gstage, fill = diet)) +
+ geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + geom_errorbar(aes(ymin = gstage - se, ymax = gstage + se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, ncol = 3, labeller = labeller(week= week.labs)) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin gonad stage over time",
+       x = "Temperature",
+       y = "Gonad stage",
+       fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_gonad_stage.png"
+
+ggsave(file_path, gonad_stage_plot, width = 14, height = 6, units = "in")
 
 
 ```
@@ -479,20 +783,36 @@ survival_dat_unhealthy <- inner_join(survival_dat_unhealthy,survival%>% select(T
 diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
 
 #MORTALITY
-survival_plot1 <- survival_dat_mort %>%
+survival_line_plot <- survival_dat_mort %>%
   ggplot(aes(x = Week, y = survivalrate, color = Diet)) +
   geom_line() +
-  geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), width = 0.2) +
-    facet_wrap(~ Temperature, scales = "free_x", ncol = 2) +
+ geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), width = 0.2) +
+    facet_wrap(~ Temperature, ncol = 2) +
   scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin survival rate (%) over time",
        x = "Week",
        y = "Survival rate (%)",
        color = "Diet")+
   theme_classic() + theme(plot.title = element_text(hjust = 0.5))
 
-file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival1_morts.png"
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival_line.png"
 
-ggsave(file_path, survival_plot1, width = 10, height = 6, units = "in")
+ggsave(file_path, survival_line_plot, width = 10, height = 6, units = "in")
+
+
+survival_bar_plot <- survival_dat_mort %>%
+  ggplot(aes(x = Week, y = survivalrate, fill = Diet)) +
+  geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) +
+ geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), position = position_dodge(width = 0.9), width = 0.2) +
+    facet_wrap(~ Temperature, ncol = 2) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin survival rate (%) over time",
+       x = "Week",
+       y = "Survival rate (%)",
+       color = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival_bar.png"
+
+ggsave(file_path, survival_bar_plot, width = 10, height = 6, units = "in")
 
 
 #MORBIDITY
@@ -543,6 +863,41 @@ file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - Unive
 ggsave(file_path, survival_plot3, width = 10, height = 6, units = "in")
 
 ```
+
+new survival plot
+```{r}
+
+survival_1 <- survival_dat_mort %>% filter(Week == 1)
+survival_9 <- survival_dat_mort %>% filter(Week == 9)
+survival_10 <- survival_dat_mort %>% filter(Week == 10)
+survival_18 <- survival_dat_mort %>% filter(Week == 18)
+survival_24 <- survival_dat_mort %>% filter(Week == 24)
+
+survival_graph_dat <- bind_rows(survival_1, survival_9,survival_10,survival_18,survival_24)
+
+
+
+# New facet label names for week variable
+week.labs <- c("week 1", "week 9", "week 10","week18", "week 24")
+names(week.labs) <- c("1", "9", "10","18", "24")
+
+survival_plot_newweeks <- survival_graph_dat %>%
+  ggplot(aes(x = Temperature, y = survivalrate, fill = Diet)) +
+  geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) + 
+  geom_errorbar(aes(ymin = survivalrate - se, ymax = survivalrate + se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ Week, ncol = 5, labeller = labeller(Week = week.labs)) +
+  scale_fill_manual(values = diet_colors) + 
+  labs(title = "Cape sea urchin survival rate (%) over time", 
+      x = "Temperature",
+      y = "Survival rate (%)",
+      fill = "Diet")+
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_survival_newweeks.png"
+
+ggsave(file_path, survival_plot_newweeks, width = 14, height = 6, units = "in") 
+```
+
 ```{r}
 
 survival_4 <- survival_dat_mort %>% filter(Week == 4)
@@ -550,6 +905,12 @@ survival_8 <- survival_dat_mort %>% filter(Week == 8)
 survival_13 <- survival_dat_mort %>% filter(Week == 13)
 survival_18 <- survival_dat_mort %>% filter(Week == 18)
 survival_23 <- survival_dat_mort %>% filter(Week == 23)
+
+
+survival_9 <- survival_dat_mort %>% filter(Week == 9)
+survival_18 <- survival_dat_mort %>% filter(Week == 18)
+survival_18 <- survival_dat_mort %>% filter(Week == 18)
+
 
 
 survival_dat_graph <- bind_rows(survival_4, survival_8,survival_13,survival_18,survival_23)

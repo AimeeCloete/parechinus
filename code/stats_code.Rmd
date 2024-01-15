@@ -37,6 +37,35 @@ data are not normally distributed.
 For Levene: If p < 0.05, the treatment group data does not have equal variances
 ```{r}
 
+#week 3 is 100%
+week9_survival <- survival%>% filter(Week == 9)
+week10_survival <- survival%>% filter(Week == 10)
+week18_survival <- survival%>% filter(Week == 18)
+week24_survival <- survival%>% filter(Week == 24)
+
+#normality tests
+shapiro.test(week9_survival$survival_rate) # not normal
+shapiro.test(week10_survival$survival_rate) # not normal
+shapiro.test(week18_survival$survival_rate) # not normal
+shapiro.test(week24_survival$survival_rate) # not normal
+
+#homogeneity tests
+require("car")
+
+leveneTest(week9_survival$survival_rate~week9_survival$Treatment) # not equal
+leveneTest(week9_survival$survival_rate~week9_survival$Diet) # not equal
+
+leveneTest(week10_survival$survival_rate~week10_survival$Treatment) # equal
+leveneTest(week10_survival$survival_rate~week10_survival$Diet) # equal
+
+leveneTest(week18_survival$survival_rate~week18_survival$Treatment) # equal
+leveneTest(week18_survival$survival_rate~week18_survival$Diet) # equal
+
+leveneTest(week24_survival$survival_rate~week24_survival$Treatment) # equal
+leveneTest(week24_survival$survival_rate~week24_survival$Diet) # equal
+
+
+
 final_survival <- survival %>% filter(Week == 24)
 week4_survival <- survival%>% filter(Week == 4)
 week9_survival <- survival%>% filter(Week == 9)
@@ -44,6 +73,8 @@ week8_survival <- survival%>% filter(Week == 8)
 week13_survival <- survival%>% filter(Week == 13)
 week18_survival <- survival%>% filter(Week == 18)
 week23_survival <- survival%>% filter(Week == 23)
+week16_survival <- survival%>% filter(Week == 16)
+week14_survival <- survival%>% filter(Week == 14)
 
 shapiro.test(week4_survival$survival_rate) # not normal
 
@@ -77,12 +108,43 @@ leveneTest(final_survival$survival_rate~final_survival$Treatment) #equal
 ```
 
 
-Kruskal-Wallis for week 8 survival
+Tests for significance
 ```{r}
 #install.packages("dunn.test", dependencies = TRUE)
 require("dunn.test")
 #install.packages("coin", dependencies = TRUE)
 require(coin)
+
+#week9
+kruskal.test(survival_rate ~ Diet, data = week9_survival) #sig
+kruskal.test(survival_rate ~ Temperature, data = week9_survival) #not sig
+kruskal.test(survival_rate ~ Treatment, data = week9_survival) #sig
+
+dunn.test(week9_survival$survival_rate, g = week9_survival$Diet, altp = TRUE, method = "bonferroni")
+dunn.test(week9_survival$survival_rate, g = week9_survival$Treatment, altp = TRUE, method = "bonferroni")
+
+#week10
+kruskal.test(survival_rate ~ Diet, data = week10_survival) #not sig
+kruskal.test(survival_rate ~ Temperature, data = week10_survival) #sig
+kruskal.test(survival_rate ~ Treatment, data = week10_survival) #not sig
+
+dunn.test(week10_survival$survival_rate, g = week10_survival$Temperature, altp = TRUE, method = "bonferroni")
+
+#week18
+kruskal.test(survival_rate ~ Diet, data = week18_survival) #not sig
+kruskal.test(survival_rate ~ Temperature, data = week18_survival) #sig
+kruskal.test(survival_rate ~ Treatment, data = week18_survival) #not sig
+
+dunn.test(week10_survival$survival_rate, g = week10_survival$Diet, altp = TRUE)
+
+#week24
+kruskal.test(survival_rate ~ Diet, data = week24_survival) #not sig
+kruskal.test(survival_rate ~ Temperature, data = week24_survival) #sig
+kruskal.test(survival_rate ~ Treatment, data = week24_survival) #not sig
+
+
+
+
 
 kruskal.test(survival_rate ~ Diet, data = week23_survival) #not sig
 kruskal.test(survival_rate ~ Diet, data = week18_survival) #not sig
@@ -97,7 +159,7 @@ kruskal.test(survival_rate ~ Treatment, data = week4_survival) #not sig
 kruskal.test(survival_rate ~ Treatment, data = week9_survival) 
 
 
-kruskal.test(survival_rate ~ Diet, data = week8_survival) 
+kruskal.test(survival_rate ~ Treatment, data = week8_survival) 
 #significant: 
 kruskal.test(survival_rate ~ Temperature, data = week8_survival) #not sig
 
@@ -126,8 +188,6 @@ Kruskal-Wallis for final survival
 
 kruskal.test(survival_rate ~ Treatment, data = final_survival) #not significant: Kruskal-Wallis chi-squared = 9.9497, df = 5, p-value = 0.07667
 
-
-
 ```
 
 
@@ -148,8 +208,38 @@ Check normality and homoscedasticity:
 
 Actual data values
 ```{r}
-shapiro.test(size$diam) #not normal
-#W = 0.99446, p-value = 4.329e-09
+size0 <- size %>% filter(week == 0)
+size4 <- size %>% filter(week == 4)
+size8 <- size %>% filter(week == 8)
+size13 <- size %>% filter(week == 13)
+size18 <- size %>% filter(week == 18)
+size23 <- size %>% filter(week == 23)
+
+weight0 <- weight %>% filter(week == 0)
+weight4 <- weight %>% filter(week == 4)
+weight8 <- weight %>% filter(week == 8)
+weight13 <- weight %>% filter(week == 13)
+weight18 <- weight %>% filter(week == 18)
+weight23 <- weight %>% filter(week == 23)
+
+size0 %>% group_by(treatment) %>% summarise(size_mean = mean(diam), SGR_se = sd(diam)/sqrt(length(diam)))
+
+weight0 %>% group_by(treatment) %>% summarise(weight_mean = mean(`weight (g)`), SGR_se = sd(`weight (g)`)/sqrt(length(`weight (g)`)))
+
+
+shapiro.test(size0$diam)#not normal
+shapiro.test(size4$diam) #not normal
+shapiro.test(size8$diam) #not normal
+shapiro.test(size13$diam) #not normal
+shapiro.test(size18$diam) #not normal
+shapiro.test(size23$diam) #not normal
+
+shapiro.test(weight0$`weight (g)`)#not normal
+shapiro.test(weight4$`weight (g)`) #not normal
+shapiro.test(weight8$`weight (g)`) #not normal
+shapiro.test(weight13$`weight (g)`) #not normal
+shapiro.test(weight18$`weight (g)`) #not normal
+shapiro.test(weight23$`weight (g)`) #not normal
 
 shapiro.test(weight$`weight (g)`) #not normal
 #W = 0.99001, p-value = 1.749e-13
@@ -161,7 +251,67 @@ leveneTest(size$diam~size$treatment) #not equal p=7.913e-10 ***
 leveneTest(weight$`weight (g)`~weight$treatment) #not equal p= 2.937e-07 ***
 
 #not normal and variances not equal - so Kruskal Wallis
+
+
 ```
+
+Kruskal tests for actual size & weight:
+```{r}
+require(dunn.test)
+#size
+#by treatment
+kruskal.test(diam ~ treatment, data = size0) #not sig
+kruskal.test(diam ~ treatment, data = size4) #not sig
+kruskal.test(diam ~ treatment, data = size8) #sig * week 8 is sig
+
+dunn.test(size8$diam , g = size8$treatment, altp = TRUE)#significant 
+
+kruskal.test(diam ~ treatment, data = size13) #not sig
+kruskal.test(diam ~ treatment, data = size18) #not sig
+kruskal.test(diam ~ treatment, data = size23) #not sig
+
+#by diet
+kruskal.test(diam ~ diet, data = size0) #not sig
+kruskal.test(diam ~ diet, data = size4) #not sig
+kruskal.test(diam ~ diet, data = size8) #sig ** week 8 is sig
+
+dunn.test(size8$diam , g = size8$diet, altp = TRUE)#significant 
+
+
+kruskal.test(diam ~ diet, data = size13) #not sig
+kruskal.test(diam ~ diet, data = size18) #not sig
+kruskal.test(diam ~ diet, data = size23) #not sig
+
+#by temperature
+kruskal.test(diam ~ temperature, data = size0) #not sig
+kruskal.test(diam ~ temperature, data = size4) #not sig
+kruskal.test(diam ~ temperature, data = size8) #sig ** week 8 is sig
+kruskal.test(diam ~ temperature, data = size13) #not sig
+kruskal.test(diam ~ temperature, data = size18) #not sig
+kruskal.test(diam ~ temperature, data = size23) #not sig
+
+
+#weight
+#by treatment
+kruskal.test(`weight (g)` ~ treatment, data = weight0) #sig
+kruskal.test(`weight (g)` ~ treatment, data = weight4) #sig
+kruskal.test(`weight (g)` ~ treatment, data = weight8) #sig
+kruskal.test(`weight (g)` ~ treatment, data = weight13) #not sig
+kruskal.test(`weight (g)` ~ treatment, data = weight18) #not sig
+kruskal.test(`weight (g)` ~ treatment, data = weight23) #not sig
+
+#by diet
+kruskal.test(`weight (g)` ~ diet, data = weight0) #not sig
+kruskal.test(`weight (g)` ~ diet, data = weight4) #sig
+kruskal.test(`weight (g)` ~ diet, data = weight8) #sig
+kruskal.test(`weight (g)` ~ diet, data = weight13) #sig
+kruskal.test(`weight (g)` ~ diet, data = weight18) #not sig
+kruskal.test(`weight (g)` ~ diet, data = weight23) #not sig
+```
+
+
+
+
 SGR values at weekly intervals
 Normality & Homoscedasticity tests
 ```{r}
@@ -222,32 +372,19 @@ size_SGR_prior_tests(SGR23) #normal & equal - ANOVA
 
 ```
 
-ANOVA tests
+Tests for significance
 
 Weight
 ```{r}
 anova_weight_SGR <- function(dat){
 aov(`weight_specific growth rate`~diet*temperature,data=dat)
 }
-w_anova4<- anova_weight_SGR(SGR4)
-oneway.test(`weight_specific growth rate`~diet, data = SGR8, var.equal = FALSE) #not sig
-oneway.test(`weight_specific growth rate`~temperature, data = SGR8, var.equal = FALSE) #not sig
-oneway.test(`weight_specific growth rate`~treatment, data = SGR8, var.equal = FALSE) #significant
-w_anova13<- anova_weight_SGR(SGR13)
-w_anova18<- anova_weight_SGR(SGR18)
-w_anova23<- anova_weight_SGR(SGR23)
 
+#week 4
+w_anova4<- anova_weight_SGR(SGR4)
 summary(w_anova4) #diet sig
 
-summary(w_anova13) #diet & temp sig
-summary(w_anova18)#diet sig
-summary(w_anova23) #diet & temp sig
 
-
-## POST HOC ##
-#WEIGHT
-
-  #week 4
 w_anova4 <- aov(`weight_specific growth rate`~diet, data = SGR4)
 summary(w_anova4)
 Tukey4 = TukeyHSD(w_anova4, ordered = TRUE)
@@ -258,40 +395,58 @@ summary(w_anova4)
 Tukey4 = TukeyHSD(w_anova4, ordered = TRUE)
 Tukey4
 
-#week 8
-oneway.test(`weight_specific growth rate`~treatment, data = SGR8, var.equal = FALSE) #sig
+#week8
+oneway.test(`weight_specific growth rate`~diet, data = SGR8, var.equal = FALSE) #not sig
+oneway.test(`weight_specific growth rate`~temperature, data = SGR8, var.equal = FALSE) #not sig
+oneway.test(`weight_specific growth rate`~treatment, data = SGR8, var.equal = FALSE) #significant
+
+oneway.test(`weight_specific growth rate`~diet+temperature, data = SGR8, var.equal = FALSE) #significant
+
+
 require(rstatix)
 games_howell_test(SGR8, `weight_specific growth rate`~treatment, conf.level = 0.95, detailed = FALSE)
 
+#week 13
+w_anova13<- anova_weight_SGR(SGR13)
+summary(w_anova13) #diet & temp sig
+
   #week 13
 w_anova13 <- aov(`weight_specific growth rate`~treatment, data = SGR13)
-summary(w_anova13)
+summary(w_anova13) #treatment sig
 Tukey13 = TukeyHSD(w_anova13, ordered = TRUE)
 Tukey13
-
 
 w_anova13 <- aov(`weight_specific growth rate`~diet, data = SGR13)
 summary(w_anova13)
 Tukey13 = TukeyHSD(w_anova13, ordered = TRUE)
 Tukey13
 
+  #week 13 t-tests?
 
 t.test(`weight_specific growth rate`~temperature, data = SGR13[SGR13$diet == "ulva",], alternative = "greater", var.equal=T) #within diets
 
 t.test(`weight_specific growth rate`~temperature, data = SGR13, alternative = "greater", var.equal=T) #across all diets
 
-  #week 18
+
+#week18
+w_anova18<- anova_weight_SGR(SGR18)
+summary(w_anova18)#diet sig temp ns
+
 w_anova18 <- aov(`weight_specific growth rate`~diet, data = SGR18)
 summary(w_anova18)
 Tukey18 = TukeyHSD(w_anova18, ordered = TRUE)
 Tukey18
 
 w_anova18 <- aov(`weight_specific growth rate`~treatment, data = SGR18)
-summary(w_anova18)
+summary(w_anova18) #treatment sig
 Tukey18 = TukeyHSD(w_anova18, ordered = TRUE)
 Tukey18
 
-  #week 23
+#week 23
+w_anova23<- anova_weight_SGR(SGR23)
+
+summary(w_anova23) #diet & temp sig
+
 w_anova23 <- aov(`weight_specific growth rate`~diet, data = SGR23)
 summary(w_anova23)
 Tukey23 = TukeyHSD(w_anova23, ordered = TRUE)
@@ -318,44 +473,54 @@ Size
 anova_size_SGR <- function(dat){
 aov(`size_specific growth rate`~diet*temperature,data=dat)
 }
+#week 4
+kruskal.test(`size_specific growth rate` ~ treatment, data = SGR4) #not sig
+kruskal.test(`size_specific growth rate` ~ diet, data = SGR4) #not sig
+kruskal.test(`size_specific growth rate` ~ temperature, data = SGR4) #sig
 
-kruskal.test(`size_specific growth rate` ~ treatment, data = SGR4)
+require(dunn.test)
+dunn.test(SGR4$`size_specific growth rate` , g = SGR4$treatment, altp = TRUE)#significant differences found but the overall p-value is not significant so i have not added these groupings to the bar plot
+
+dunn.test(SGR4$`size_specific growth rate` , g = SGR4$temperature, altp = TRUE)
+#sig
+
+
+#week 8
 s_anova8<- anova_size_SGR(SGR8)
+summary(s_anova8) #not sig
+s_anova8<- aov(`size_specific growth rate`~treatment,data=SGR8)
+summary(s_anova8) #not sig
+
+#week 13
 s_anova13<- anova_size_SGR(SGR13)
-s_anova18<- anova_size_SGR(SGR18)
-s_anova23<- anova_size_SGR(SGR23)
-summary(s_anova8)
-summary(s_anova13)
-summary(s_anova18)
-summary(s_anova23)
-
-t<- aov(`size_specific growth rate`~week, data = somatic_growth)
-summary(t)
-```
-
-
-
-Post hoc
-```{r}
-
-
-
-#SIZE
+summary(s_anova13) #diet sig
+s_anova13<- aov(`size_specific growth rate`~treatment,data=SGR13)
+summary(s_anova13) #treatment not sig
 
 s_anova13<- aov(`size_specific growth rate`~diet, data = SGR13)
 summary(s_anova13)
-
 Tukey13 = TukeyHSD(s_anova13, ordered = TRUE)
 Tukey13
 
+#week18
+s_anova18<- anova_size_SGR(SGR18)
+summary(s_anova18) #diet sig
+s_anova18<- aov(`size_specific growth rate`~treatment,data=SGR18)
+summary(s_anova18) #treatment not sig
+
 s_anova18<- aov(`size_specific growth rate`~diet, data = SGR18)
 summary(s_anova18)
-
 Tukey18 = TukeyHSD(s_anova18, ordered = TRUE)
 Tukey18
 
-t.test(`size_specific growth rate`~temperature, data = SGR23, alternative = "greater", var.equal=T)
+#week23
+s_anova23<- anova_size_SGR(SGR23)
+summary(s_anova23) #temp sig, diet ns, treatment ns
 
+s_anova23<- aov(`size_specific growth rate`~temperature, data = SGR23)
+summary(s_anova23)
+Tukey23 = TukeyHSD(s_anova23, ordered = TRUE)
+Tukey23
 
 
 ```
@@ -594,29 +759,39 @@ GSI_prior_tests(gonad26) #normal, equal variance - ANOVA
 
 
 ```
-Kruskals
+Significance tests
 ```{r}
 
 
 library(dunn.test)
-kruskal.test(GSI ~ treatment, data = gonad9) #significant
-#Kruskal-Wallis chi-squared = 32.586, df = 7, p-value = 3.162e-05
-
 require("dunn.test")
 #install.packages("coin", dependencies = TRUE)
 require(coin)
 
-##DIET##
-kruskal.test(GSI ~ diet, data = gonad9) #significant
-#Kruskal-Wallis chi-squared = 31.198, df = 3, p-value =7.724e-07
+#week 9
+kruskal.test(GSI ~ diet, data = gonad9) #diet significant
+kruskal.test(GSI ~ temperature, data = gonad9) #temp not significant
+kruskal.test(GSI ~ treatment, data = gonad9) #treatment significant
 
-dunn.test(gonad9$GSI, g = gonad9$diet)
-dunn.test(gonad9$GSI, g = gonad9$treatment)
-##TEMP##
-kruskal.test(GSI ~ temperature, data = gonad9) #not significant
-#Kruskal-Wallis chi-squared = 0.132, df = 1, p-value = 0.7164
+dunn.test(gonad9$GSI, g = gonad9$diet, altp = TRUE)
+dunn.test(gonad9$GSI, g = gonad9$treatment, altp = TRUE)
 
 
+#week 19
+kruskal.test(GSI ~ diet, data = gonad19) #diet significant
+kruskal.test(GSI ~ temperature, data = gonad19) #temp not significant
+kruskal.test(GSI ~ treatment, data = gonad19) #treatment significant
+
+dunn.test(gonad19$GSI, g = gonad19$diet, altp = TRUE)
+dunn.test(gonad19$GSI, g = gonad19$treatment, altp = TRUE)
+
+#week 26
+kruskal.test(GSI ~ diet, data = gonad26) #diet significant
+kruskal.test(GSI ~ temperature, data = gonad26) #temp not significant
+kruskal.test(GSI ~ treatment, data = gonad26) #treatment significant
+
+dunn.test(gonad26$GSI, g = gonad26$diet, altp = TRUE)
+dunn.test(gonad26$GSI, g = gonad26$treatment, altp = TRUE)
 
 
 dunn.test(gonad9$GSI, g = gonad9$treatment)
