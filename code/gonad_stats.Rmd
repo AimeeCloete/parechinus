@@ -1,0 +1,83 @@
+---
+title: "stats_code_gonad"
+author: "Aimee"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(knitr)  
+setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
+```
+
+#Gonad stage
+```{r}
+gonad_stage <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad_stage_MBH.xlsx")
+
+gonad_stage <- gonad_stage %>% mutate(stage_nr = ifelse(stage == "recovery",1,ifelse(stage == "growing", 2, ifelse(stage == "premature",3,ifelse(stage == "mature", 4, ifelse(stage == "partly spent", 5,6))))))
+
+gonad_stage$temperature <- as.factor(gonad_stage$temperature)
+
+gonad9 <- gonad_stage %>% filter(week == 9)
+gonad19 <- gonad_stage %>% filter(week == 19)
+gonad26 <- gonad_stage %>% filter(week == 26)
+
+```
+
+Normality tests
+```{r}
+require(car)
+#week 9
+shapiro.test(sqrt(gonad9$stage_nr)) #not normal - log also not normal
+leveneTest(gonad9$stage_nr~gonad9$diet) # equal variance
+
+#week 19
+shapiro.test(sqrt(gonad19$stage_nr)) #not normal - log also not normal
+leveneTest(gonad19$stage_nr~gonad19$diet) # equal variance
+
+#week 26
+shapiro.test(gonad26$stage_nr) #not normal - log also not normal
+leveneTest(gonad26$stage_nr~gonad26$diet) # equal variance
+
+#so Kruskal for all!
+```
+
+Testing significance
+```{r}
+require(coin)
+
+#diet
+kruskal.test(stage_nr ~ diet, data = gonad9)
+kruskal.test(stage_nr ~ diet, data = gonad19)
+kruskal.test(stage_nr ~ diet, data = gonad26)
+
+#temp
+U = wilcox_test(stage_nr ~temperature, data = gonad9, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(stage_nr ~temperature, data = gonad19, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(stage_nr ~temperature, data = gonad26, 
+                 alternative = "two.sided")
+U
+
+```
+
+Post hoc tests
+Diet
+```{r}
+require("dunn.test")
+dunn.test(gonad9$stage_nr, g = gonad9$diet, altp = TRUE)
+dunn.test(gonad19$stage_nr, g = gonad19$diet, altp = TRUE)
+dunn.test(gonad26$stage_nr, g = gonad26$diet, altp = TRUE)
+```
+
+
+
+

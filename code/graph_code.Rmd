@@ -620,7 +620,7 @@ ggsave(file_path, gonad_col_pcaplot, width = 10, height = 6, units = "in")
 
 
 
-gonad stage 
+#Gonad stage 
 ```{r}
 # New facet label names for week variable
 week.labs <- c("week 9", "week 19", "week 26")
@@ -629,7 +629,11 @@ names(week.labs) <- c("9", "19", "26")
 diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "kelp" = "darkorange")
 
 
-gonad_stage <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad_stage.xlsx")
+gonad_stage <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad_stage_MBH.xlsx")
+
+gonad_stage <- gonad_stage %>% mutate(stage_nr = ifelse(stage == "recovery",1,ifelse(stage == "growing", 2, ifelse(stage == "premature",3,ifelse(stage == "mature", 4, ifelse(stage == "partly spent", 5,6))))))
+
+gonad_stage$treatment <- paste0(substr(gonad_stage$diet, 1, 1), substr(gonad_stage$temperature, 1, 1))
 
 stage_dat <- gonad_stage %>% group_by(treatment,week) %>% 
   summarise(gstage = mean(stage_nr),
@@ -703,6 +707,8 @@ ggsave(file_path, feed_plot, width = 10, height = 6, units = "in")
 Load data
 ```{r}
 temperature <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/temperature.xlsx")
+
+
 ```
 
 
@@ -716,18 +722,25 @@ temp_dat <- temperature %>% group_by(Treatment, Date) %>%
   summarise(temp = mean(`Temp °C` ),
             se = sd(`Temp °C`)/sqrt(length(`Temp °C`))) 
 
-temp_colors <- c("Ambient" = "skyblue", "Warmed" = "maroon")
+temp_colors <- c("Ambient" = "cornflowerblue", "Warmed" = "brown")
 
-measurement_dates <- c("2023-07-07", "2023-08-04", "2023-09-04", "2023-10-09", "2023-11-13")
+somatic_dates <- c("2023-06-09","2023-07-07", "2023-08-04", "2023-09-04", "2023-10-09", "2023-11-13")
+
+gonad_dates <- c("2023-08-10", "2023-10-17", "2023-12-05")
+
+datacollection_dates <- data.frame(somatic_dates, Lines = "somatic data collection")
+gonadcollection_dates <- data.frame(gonad_dates, Lines = "gonad data collection")
+
+datacollection_colors <- c(somatic_dates = "azure4", gonad_dates = "darkorange")
 
 temp_plot <- temp_dat %>%
   ggplot(aes(x = Date, y = temp, color = Treatment)) +
   geom_line() +
-  geom_errorbar(aes(ymin = temp - se, ymax = temp + se), width = 0.2) + geom_vline(xintercept = as.Date(measurement_dates), linetype = "dashed", color = "grey") +
-  scale_color_manual(values = temp_colors) + labs(title = "Temperature record (°C) for ambient and warmed treatment tanks",
+  geom_errorbar(aes(ymin = temp - se, ymax = temp + se), width = 0.2) + geom_vline(aes(xintercept = as.Date(somatic_dates), linetype = Lines), datacollection_dates)  + geom_vline(aes(xintercept = as.Date(gonad_dates), linetype = Lines), gonadcollection_dates)+
+  scale_color_manual(values = temp_colors)+ labs(title = "Temperature record (°C) for ambient and warmed treatment tanks",
        x = "Date",
        y = "Temperature (°C)",
-       color = "Temperature Treatment")+
+       color = "Temperature Treatment")+  scale_x_date(date_breaks = "1 month", date_labels = "%b") +
   theme_classic() + theme(plot.title = element_text(hjust = 0.5))
 
 
@@ -737,11 +750,32 @@ file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - Unive
 ggsave(file_path, temp_plot, width = 10, height = 6, units = "in")
 ```
 
+
 ```{r}
 temp_dat_ave <- temperature %>% group_by(Treatment) %>% 
   summarise(temp = mean(`Temp °C` ),
             se = sd(`Temp °C`)/sqrt(length(`Temp °C`))) 
 ```
+
+Temp histogram
+```{r}
+
+daily_temp <- temperature %>% group_by(Date, Treatment) %>% 
+  summarise(daytemp = mean(`Temp °C` ),
+            se = sd(`Temp °C`)/sqrt(length(`Temp °C`)))
+
+temp_colors <- c("Ambient" = "cornflowerblue", "Warmed" = "brown")
+
+daily_temp %>% filter(Treatment == "Warmed") %>%  ggplot(aes(x = daytemp, color = Treatment)) +
+  geom_histogram(fill = "white", position = "identity", alpha = 0.5, bins = 30) +
+  labs(title = "Histogram of Temperature records", x = "Value", y = "Frequency") +
+  theme_classic() +
+  scale_color_manual(values = temp_colors)
+
+```
+
+
+
 
 #Survival (CONTINUE HERE)
 

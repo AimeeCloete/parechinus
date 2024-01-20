@@ -26,6 +26,8 @@ survival <- survival %>% group_by(Tank) %>% mutate(CumMort= cumsum(Mortalities),
 
 survival <-survival %>% group_by(Tank) %>% mutate(survival_rate = 100*( (19-CumMort)/19))
 
+survival$Temperature <- as.factor(survival$Temperature)
+
 
 ```
 
@@ -37,7 +39,7 @@ data are not normally distributed.
 For Levene: If p < 0.05, the treatment group data does not have equal variances
 ```{r}
 
-#week 3 is 100%
+week1_survival <- survival%>% filter(Week == 1)
 week9_survival <- survival%>% filter(Week == 9)
 week10_survival <- survival%>% filter(Week == 10)
 week18_survival <- survival%>% filter(Week == 18)
@@ -120,6 +122,10 @@ kruskal.test(survival_rate ~ Diet, data = week9_survival) #sig
 kruskal.test(survival_rate ~ Temperature, data = week9_survival) #not sig
 kruskal.test(survival_rate ~ Treatment, data = week9_survival) #sig
 
+U = wilcox_test(survival_rate~Temperature, data = week9_survival, 
+                 alternative = "two.sided")
+U
+
 dunn.test(week9_survival$survival_rate, g = week9_survival$Diet, altp = TRUE, method = "bonferroni")
 dunn.test(week9_survival$survival_rate, g = week9_survival$Treatment, altp = TRUE, method = "bonferroni")
 
@@ -130,6 +136,10 @@ kruskal.test(survival_rate ~ Treatment, data = week10_survival) #not sig
 
 dunn.test(week10_survival$survival_rate, g = week10_survival$Temperature, altp = TRUE, method = "bonferroni")
 
+U = wilcox_test(survival_rate~Temperature, data = week10_survival, 
+                 alternative = "less")
+U
+
 #week18
 kruskal.test(survival_rate ~ Diet, data = week18_survival) #not sig
 kruskal.test(survival_rate ~ Temperature, data = week18_survival) #sig
@@ -137,10 +147,18 @@ kruskal.test(survival_rate ~ Treatment, data = week18_survival) #not sig
 
 dunn.test(week10_survival$survival_rate, g = week10_survival$Diet, altp = TRUE)
 
+U = wilcox_test(survival_rate~Temperature, data = week18_survival, 
+                 alternative = "less")
+U
+
 #week24
 kruskal.test(survival_rate ~ Diet, data = week24_survival) #not sig
 kruskal.test(survival_rate ~ Temperature, data = week24_survival) #sig
 kruskal.test(survival_rate ~ Treatment, data = week24_survival) #not sig
+
+U = wilcox_test(survival_rate~Temperature, data = week24_survival, 
+                 alternative = "two.sided")
+U
 
 
 
@@ -390,7 +408,7 @@ summary(w_anova4)
 Tukey4 = TukeyHSD(w_anova4, ordered = TRUE)
 Tukey4
 
-w_anova4 <- aov(`weight_specific growth rate`~treatment, data = SGR4)
+w_anova4 <- aov(`weight_specific growth rate`~temperature, data = SGR4)
 summary(w_anova4)
 Tukey4 = TukeyHSD(w_anova4, ordered = TRUE)
 Tukey4
@@ -411,7 +429,7 @@ w_anova13<- anova_weight_SGR(SGR13)
 summary(w_anova13) #diet & temp sig
 
   #week 13
-w_anova13 <- aov(`weight_specific growth rate`~treatment, data = SGR13)
+w_anova13 <- aov(`weight_specific growth rate`~temperature, data = SGR13)
 summary(w_anova13) #treatment sig
 Tukey13 = TukeyHSD(w_anova13, ordered = TRUE)
 Tukey13
@@ -437,7 +455,7 @@ summary(w_anova18)
 Tukey18 = TukeyHSD(w_anova18, ordered = TRUE)
 Tukey18
 
-w_anova18 <- aov(`weight_specific growth rate`~treatment, data = SGR18)
+w_anova18 <- aov(`weight_specific growth rate`~temperature, data = SGR18)
 summary(w_anova18) #treatment sig
 Tukey18 = TukeyHSD(w_anova18, ordered = TRUE)
 Tukey18
@@ -452,7 +470,7 @@ summary(w_anova23)
 Tukey23 = TukeyHSD(w_anova23, ordered = TRUE)
 Tukey23
 
-w_anova23 <- aov(`weight_specific growth rate`~treatment, data = SGR23)
+w_anova23 <- aov(`weight_specific growth rate`~temperature, data = SGR23)
 summary(w_anova23)
 Tukey23 = TukeyHSD(w_anova23, ordered = TRUE)
 Tukey23
@@ -481,20 +499,26 @@ kruskal.test(`size_specific growth rate` ~ temperature, data = SGR4) #sig
 require(dunn.test)
 dunn.test(SGR4$`size_specific growth rate` , g = SGR4$treatment, altp = TRUE)#significant differences found but the overall p-value is not significant so i have not added these groupings to the bar plot
 
-dunn.test(SGR4$`size_specific growth rate` , g = SGR4$temperature, altp = TRUE)
+dunn.test(SGR4$`size_specific growth rate` , g = SGR4$diet, altp = TRUE, method = "bonferroni")
 #sig
 
 
 #week 8
 s_anova8<- anova_size_SGR(SGR8)
 summary(s_anova8) #not sig
-s_anova8<- aov(`size_specific growth rate`~treatment,data=SGR8)
+s_anova8<- aov(`size_specific growth rate`~temperature,data=SGR8)
 summary(s_anova8) #not sig
+
+s_anova8<- aov(`size_specific growth rate`~diet,data=SGR8)
+summary(s_anova8) #not sig
+
+t.test(`size_specific growth rate`~temperature, data = SGR8, alternative = "greater", var.equal=T)
+
 
 #week 13
 s_anova13<- anova_size_SGR(SGR13)
 summary(s_anova13) #diet sig
-s_anova13<- aov(`size_specific growth rate`~treatment,data=SGR13)
+s_anova13<- aov(`size_specific growth rate`~temperature,data=SGR13)
 summary(s_anova13) #treatment not sig
 
 s_anova13<- aov(`size_specific growth rate`~diet, data = SGR13)
@@ -505,7 +529,7 @@ Tukey13
 #week18
 s_anova18<- anova_size_SGR(SGR18)
 summary(s_anova18) #diet sig
-s_anova18<- aov(`size_specific growth rate`~treatment,data=SGR18)
+s_anova18<- aov(`size_specific growth rate`~temperature,data=SGR18)
 summary(s_anova18) #treatment not sig
 
 s_anova18<- aov(`size_specific growth rate`~diet, data = SGR18)
@@ -518,6 +542,11 @@ s_anova23<- anova_size_SGR(SGR23)
 summary(s_anova23) #temp sig, diet ns, treatment ns
 
 s_anova23<- aov(`size_specific growth rate`~temperature, data = SGR23)
+summary(s_anova23)
+Tukey23 = TukeyHSD(s_anova23, ordered = TRUE)
+Tukey23
+
+s_anova23<- aov(`size_specific growth rate`~diet, data = SGR23)
 summary(s_anova23)
 Tukey23 = TukeyHSD(s_anova23, ordered = TRUE)
 Tukey23
@@ -729,7 +758,7 @@ summary(uw_anova) #not significant
 
 
 
-#Gonad
+#GSI
 
 Load data
 ```{r}
@@ -754,6 +783,8 @@ GSI_prior_tests <- function(data){
 }
 
 GSI_prior_tests(gonad9) #not normal, equal variance - Kruskal
+shapiro.test(log(gonad9$GSI)) #log GSI normal, equal variance - ANOVA
+gonad9$logGSI <- log(gonad9$GSI)
 GSI_prior_tests(gonad19) #normal, equal variance - ANOVA
 GSI_prior_tests(gonad26) #normal, equal variance - ANOVA
 
@@ -799,11 +830,16 @@ dunn.test(gonad9$GSI, g = gonad9$treatment)
 dunn.test(week8_survival$survival_rate, g = week8_survival$Treatment)
 ```
 
-ANOVA
+ANOVA for dietary effects
 ```{r}
 anova_GSI <- function(dat){
 aov(GSI~diet,data=dat)
 }
+
+anova9 <- aov(gonad9$logGSI~gonad9$diet)
+summary(anova9)
+Tukey9 = TukeyHSD(anova9, ordered = TRUE)
+Tukey9
 
 anova19 <- anova_GSI(gonad19)
 summary(anova19)
@@ -816,5 +852,139 @@ summary(anova26)
 
 Tukey26 = TukeyHSD(anova26, ordered=TRUE) 
 Tukey26
+```
+
+T-tests for temperature effects
+```{r}
+t.test(GSI~temperature, data = gonad9, var.equal=T)
+t.test(GSI~temperature, data = gonad19, var.equal=T)
+t.test(GSI~temperature, data = gonad26, var.equal=T)
+```
+#Gonad stage
+```{r}
+gonad_stage <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad_stage_MBH.xlsx")
+
+gonad_stage <- gonad_stage %>% mutate(stage_nr = ifelse(stage == "recovery",1,ifelse(stage == "growing", 2, ifelse(stage == "premature",3,ifelse(stage == "mature", 4, ifelse(stage == "partly spent", 5,6))))))
+
+gonad_stage$temperature <- as.factor(gonad_stage$temperature)
+
+gonad9 <- gonad_stage %>% filter(week == 9)
+gonad19 <- gonad_stage %>% filter(week == 19)
+gonad26 <- gonad_stage %>% filter(week == 26)
+
+```
+
+Normality tests
+```{r}
+require(car)
+#week 9
+shapiro.test(sqrt(gonad9$stage_nr)) #not normal - log also not normal
+leveneTest(gonad9$stage_nr~gonad9$diet) # equal variance
+
+#week 19
+shapiro.test(sqrt(gonad19$stage_nr)) #not normal - log also not normal
+leveneTest(gonad19$stage_nr~gonad19$diet) # equal variance
+
+#week 26
+shapiro.test(gonad26$stage_nr) #not normal - log also not normal
+leveneTest(gonad26$stage_nr~gonad26$diet) # equal variance
+
+#so Kruskal for all!
+```
+
+Testing significance
+```{r}
+require(coin)
+
+#diet
+kruskal.test(stage_nr ~ diet, data = gonad9)
+kruskal.test(stage_nr ~ diet, data = gonad19)
+kruskal.test(stage_nr ~ diet, data = gonad26)
+
+#temp
+U = wilcox_test(stage_nr ~temperature, data = gonad9, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(stage_nr ~temperature, data = gonad19, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(stage_nr ~temperature, data = gonad26, 
+                 alternative = "two.sided")
+U
+
+
+kruskal.test(survival_rate ~ Diet, data = week9_survival) #sig
+```
+
+
+
+#Temperature
+```{r}
+temperature <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/temperature.xlsx")
+
+#install.packages("moments")
+library(moments)
+
+
+daily_temp <- temperature %>% group_by(Date, Treatment, Period) %>% 
+  summarise(daytemp = mean(`Temp °C` ),
+            se = sd(`Temp °C`)/sqrt(length(`Temp °C`)))
+
+
+#transformation
+transformation <- daily_temp %>% group_by(Treatment) %>% mutate(daytemp_trans = log10(max(daytemp+1) - daytemp), daytemp_log = log(daytemp))
+
+#seperate into periods
+t1<- transformation %>% filter(Period == 1)
+t2<- transformation %>% filter(Period == 2)
+t3<- transformation %>% filter(Period == 3)
+t4<- transformation %>% filter(Period == 4)
+t5<- transformation %>% filter(Period == 5)
+
+
+#seperate into treatments
+a_temp <- transformation %>% filter(Treatment == "Ambient")
+w_temp <- transformation %>% filter(Treatment == "Warmed")
+
+
+temp_normality <- function(data){
+  print(shapiro.test(data$daytemp))
+  print(shapiro.test(data$daytemp_trans))
+  print(shapiro.test(data$daytemp_log))
+}
+
+
+#period 1 - ambient normal, warm not normal
+t1 %>% filter(Treatment == "Ambient") %>% temp_normality()
+t1 %>% filter(Treatment == "Warmed") %>% temp_normality()
+
+#period 2 - ambient normal, warm normal
+t2 %>% filter(Treatment == "Ambient") %>% temp_normality()
+t2 %>% filter(Treatment == "Warmed") %>% temp_normality()
+
+#period 3 - ambient normal, warm normal
+t3 %>% filter(Treatment == "Ambient") %>% temp_normality()
+t3 %>% filter(Treatment == "Warmed") %>% temp_normality()
+
+#period 4 - ambient trans normal, warm not normal
+t4 %>% filter(Treatment == "Ambient") %>% temp_normality()
+t4 %>% filter(Treatment == "Warmed") %>% temp_normality()
+
+#period 5 - ambient normal, warm not normal
+t5 %>% filter(Treatment == "Ambient") %>% temp_normality()
+t5 %>% filter(Treatment == "Warmed") %>% temp_normality()
+
+
+```
+
+Look at ambient between periods
+```{r}
+winter <- bind_rows(t1,t2)
+spring <- bind_rows(t4,t5)
+
+winter %>% ggplot(aes(x = daytemp, color = Treatment))+geom_histogram()
+spring %>% ggplot(aes(x = daytemp, color = Treatment))+geom_histogram()
 ```
 
