@@ -20,6 +20,8 @@ gonad_stage <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/One
 gonad_stage <- gonad_stage %>% mutate(stage_nr = ifelse(stage == "recovery",1,ifelse(stage == "growing", 2, ifelse(stage == "premature",3,ifelse(stage == "mature", 4, ifelse(stage == "partly spent", 5,6))))))
 
 gonad_stage$temperature <- as.factor(gonad_stage$temperature)
+gonad_stage$treatment <- paste0(substr(gonad_stage$diet, 1, 1), substr(gonad_stage$temperature, 1, 1))
+gonad_stage$sex <- as.factor(gonad_stage$sex)
 
 gonad9 <- gonad_stage %>% filter(week == 9)
 gonad19 <- gonad_stage %>% filter(week == 19)
@@ -33,14 +35,20 @@ require(car)
 #week 9
 shapiro.test(sqrt(gonad9$stage_nr)) #not normal - log also not normal
 leveneTest(gonad9$stage_nr~gonad9$diet) # equal variance
+leveneTest(gonad9$stage_nr~gonad9$temperature) # equal variance
+leveneTest(gonad9$stage_nr~gonad9$sex) # equal variance
 
 #week 19
 shapiro.test(sqrt(gonad19$stage_nr)) #not normal - log also not normal
 leveneTest(gonad19$stage_nr~gonad19$diet) # equal variance
+leveneTest(gonad19$stage_nr~gonad19$temperature) # equal variance
+leveneTest(gonad19$stage_nr~gonad19$sex) # NOT equal variance FOR SEX
 
 #week 26
 shapiro.test(gonad26$stage_nr) #not normal - log also not normal
 leveneTest(gonad26$stage_nr~gonad26$diet) # equal variance
+leveneTest(gonad26$stage_nr~gonad26$temperature) # equal variance
+leveneTest(gonad26$stage_nr~gonad26$sex) # equal variance
 
 #so Kruskal for all!
 ```
@@ -67,17 +75,544 @@ U = wilcox_test(stage_nr ~temperature, data = gonad26,
                  alternative = "two.sided")
 U
 
+#sex
+U = wilcox_test(stage_nr ~sex, data = gonad9, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(stage_nr ~sex, data = gonad19, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(stage_nr ~sex, data = gonad26, 
+                 alternative = "two.sided")
+U
+
 ```
 
 Post hoc tests
 Diet
 ```{r}
 require("dunn.test")
-dunn.test(gonad9$stage_nr, g = gonad9$diet, altp = TRUE)
-dunn.test(gonad19$stage_nr, g = gonad19$diet, altp = TRUE)
-dunn.test(gonad26$stage_nr, g = gonad26$diet, altp = TRUE)
+dunn.test(gonad9$stage_nr, g = gonad9$diet, altp = TRUE,  method = "bonferroni")
+dunn.test(gonad19$stage_nr, g = gonad19$diet, altp = TRUE, method = "bonferroni")
+dunn.test(gonad26$stage_nr, g = gonad26$diet, altp = TRUE, method = "bonferroni")
+```
+
+Averages
+```{r}
+#diet
+gonad9 %>% group_by(diet) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+gonad19 %>% group_by(diet) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+gonad26 %>% group_by(diet) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+#temp
+gonad9 %>% group_by(temperature) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+gonad19 %>% group_by(temperature) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+gonad26 %>% group_by(temperature) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+#sex
+gonad9 %>% group_by(sex) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+gonad19 %>% group_by(sex) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+gonad26 %>% group_by(sex) %>% summarise(mean = mean(stage_nr), se = sd(stage_nr)/sqrt(length(stage_nr)))
+
+```
+
+#GSI
+
+Load data
+```{r}
+gonad <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad.xlsx")
+
+gonad$temperature <- as.factor(gonad$temperature)
+gonad$sex <- as.factor(gonad$sex)
+
+gonad9 <- gonad %>% filter(week == 9)
+gonad19 <- gonad %>% filter(week == 19)
+gonad26 <- gonad %>% filter(week == 26)
+
+
+```
+
+Normality & Homoscedasticity
+```{r}
+require(car)
+shapiro.test(log(gonad9$GSI)) #log is normal
+leveneTest(log(gonad9$GSI)~gonad9$diet) # equal variance
+leveneTest(log(gonad9$GSI)~gonad9$temperature) # equal variance
+leveneTest(log(gonad9$GSI)~gonad9$sex) # equal variance
+
+shapiro.test(gonad19$GSI) #normal
+leveneTest(gonad19$GSI~gonad19$diet) # equal variance
+leveneTest(gonad19$GSI~gonad19$temperature) # equal variance
+leveneTest(gonad19$GSI~gonad19$sex) # equal variance
+
+shapiro.test(gonad26$GSI) #normal
+leveneTest(gonad26$GSI~gonad26$diet) # equal variance
+leveneTest(gonad26$GSI~gonad26$temperature) # equal variance
+leveneTest(gonad26$GSI~gonad26$sex) # equal variance
+
+#So ANOVA for all, but log for week 9!
+
+```
+Significance tests
+
+ANOVA for dietary effects
+```{r}
+anova_GSI <- function(dat){
+aov(GSI~diet,data=dat)
+}
+
+gonad9$logGSI <- log(gonad9$GSI)
+
+anova9 <- aov(gonad9$logGSI~gonad9$diet)
+summary(anova9)
+Tukey9 = TukeyHSD(anova9, ordered = TRUE)
+Tukey9
+
+anova19 <- anova_GSI(gonad19)
+summary(anova19)
+
+Tukey19 = TukeyHSD(anova19, ordered=TRUE) 
+Tukey19
+
+anova26 <- anova_GSI(gonad26)
+summary(anova26)
+
+Tukey26 = TukeyHSD(anova26, ordered=TRUE) 
+Tukey26
+```
+
+T-tests for temperature effects
+```{r}
+t.test(logGSI~temperature, data = gonad9, var.equal=T)
+t.test(GSI~temperature, data = gonad19, var.equal=T)
+t.test(GSI~temperature, data = gonad26, var.equal=T)
 ```
 
 
+T-tests for sex effect
+```{r}
+t.test(logGSI~sex, data = gonad9, var.equal=T)
+t.test(GSI~sex, data = gonad19, var.equal=T)
+t.test(GSI~sex, data = gonad26, var.equal=T)
+t.test(GSI~sex, data = gonad26, var.equal=T, alternative = "greater")
+```
+
+Averages
+```{r}
+#diet
+gonad9 %>% group_by(diet) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+gonad19 %>% group_by(diet) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+gonad26 %>% group_by(diet) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+#temperature
+gonad9 %>% group_by(temperature) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+gonad19 %>% group_by(temperature) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+gonad26 %>% group_by(temperature) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+#sex
+gonad9 %>% group_by(sex) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+gonad19 %>% group_by(sex) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+gonad26 %>% group_by(sex) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+```
+
+
+
+
+
+
+
+#Gonad colour
+```{r}
+gonad <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad.xlsx")
+
+gonad$temperature <- as.factor(gonad$temperature)
+gonad$sex <- as.factor(gonad$sex)
+gonad9 <- gonad %>% filter(week == 9)
+gonad19 <- gonad %>% filter(week == 19)
+gonad26 <- gonad %>% filter(week == 26)
+#gonad26 <- gonad %>% filter(week == 26) %>% filter(diet != "formulated")
+
+
+```
+
+##Lightness
+```{r}
+require(car)
+shapiro.test(gonad9$`L*`) #normal
+leveneTest(gonad9$`L*`~gonad9$diet) # equal variance
+leveneTest(gonad9$`L*`~gonad9$temperature) # equal variance
+leveneTest(gonad9$`L*`~gonad9$sex) # equal variance
+
+shapiro.test(gonad19$`L*`) #normal
+leveneTest(gonad19$`L*`~gonad19$diet) # equal variance
+leveneTest(gonad19$`L*`~gonad19$temperature) # equal variance
+leveneTest(gonad19$`L*`~gonad19$sex) # equal variance
+
+#WITH WEEK 26 INCL FORMULATED
+shapiro.test(gonad26$`L*`) #not normal
+shapiro.test(log10(max(gonad26$`L*`+1) - gonad26$`L*`)) #notnormal
+shapiro.test(sqrt(gonad26$`L*`)) #sqrt & log produce NA - not normal
+leveneTest(gonad26$`L*`~gonad26$diet) # equal variance
+leveneTest(gonad26$`L*`~gonad26$temperature) # equal variance
+leveneTest(gonad26$`L*`~gonad26$sex) # NOT equal variance for SEX
+
+#WITH GONAD26 EXCL FORMULATED FOR SEX!
+shapiro.test(gonad26$`L*`) #normal
+leveneTest(gonad26$`L*`~gonad26$sex) # NOT equal variance for SEX
+
+
+#So ANOVA for week 9 & 19
+#Kruskal for week 26
+
+#week 26 excl formulated:
+#sex - two sample t varequal=F
+
+```
+
+Testing significance:
+Diet
+```{r}
+anova_col <- function(dat){
+aov(`L*`~diet,data=dat)
+}
+
+summary(anova_col(gonad9))
+summary(anova_col(gonad19))
+
+kruskal.test(`L*` ~ diet, data = gonad26)
+
+#posthoc
+anova9<- anova_col(gonad9)
+summary(anova9)
+Tukey9 = TukeyHSD(anova9, ordered = TRUE)
+Tukey9
+
+anova19<- anova_col(gonad19)
+summary(anova19)
+Tukey19 = TukeyHSD(anova19, ordered = TRUE)
+Tukey19
+
+require("dunn.test")
+dunn.test(gonad26$`L*` , g = gonad26$diet, altp = TRUE, method = "bonferroni")
+
+
+
+```
+Temperature
+```{r}
+require(coin)
+
+t.test(`L*`~temperature, data = gonad9, var.equal=T)
+t.test(`L*`~temperature, data = gonad19, var.equal=T)
+
+U = wilcox_test(`L*` ~temperature, data = gonad26, 
+                 alternative = "two.sided")
+U
+```
+
+Sex
+```{r}
+require(coin)
+
+#week9
+t.test(`L*`~sex, data = gonad9, var.equal=T)
+t.test(`L*`~sex, data = gonad9, var.equal=T, alternative = "less")
+
+#week 19
+t.test(`L*`~sex, data = gonad19, var.equal=T)
+t.test(`L*`~sex, data = gonad19, var.equal=T, alternative = "less")
+
+#week 26
+U = wilcox_test(`L*` ~sex, data = gonad26, 
+                 alternative = "two.sided")
+U
+
+#week 26 excl formulated:
+#sex - two sample t varequal=F
+t.test(`L*`~sex, data = gonad26, var.equal=F)
+t.test(`L*`~sex, data = gonad19, var.equal=F, alternative = "less")
+
+```
+
+Averages
+```{r}
+#diet
+gonad9 %>% group_by(diet) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+gonad19 %>% group_by(diet) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+gonad26 %>% group_by(diet) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+#temperature
+gonad9 %>% group_by(temperature) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+gonad19 %>% group_by(temperature) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+gonad26 %>% group_by(temperature) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+#sex
+gonad9 %>% group_by(sex) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+gonad19 %>% group_by(sex) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+gonad26 %>% group_by(sex) %>% summarise(mean = mean(`L*`), se = sd(`L*`)/sqrt(length(`L*`)))
+
+```
+
+
+
+##Redness
+```{r}
+require(car)
+shapiro.test(gonad9$`a*`) #normal
+leveneTest(gonad9$`a*`~gonad9$diet) # not equal variance
+leveneTest(gonad9$`a*`~gonad9$temperature) # equal variance FOR TEMP
+leveneTest(gonad9$`a*`~gonad9$sex) # equal variance FOR SEX
+
+shapiro.test(gonad19$`a*`) #normal
+leveneTest(gonad19$`a*`~gonad19$diet) # equal variance
+leveneTest(gonad19$`a*`~gonad19$temperature) # equal variance
+leveneTest(gonad19$`a*`~gonad19$sex) # not equal variance FOR SEX
+
+shapiro.test(gonad26$`a*`) #not normal
+shapiro.test(log10(max(gonad26$`a*`+1) - gonad26$`a*`)) #notnormal
+shapiro.test(log(gonad26$`a*`)) #log is normal
+leveneTest(log(gonad26$`a*`)~gonad26$diet) # log equal variance
+leveneTest(log(gonad26$`a*`)~gonad26$temperature) # log equal variance
+leveneTest(log(gonad26$`a*`)~gonad26$sex) # log NOT equal variance FOR SEX
+
+
+#week 9 - Welch ANOVA
+#week 19 - ANOVA
+#week 26 - log ANOVA
+
+#week 26 - excl formulated for SEX
+shapiro.test(gonad26$`a*`) #normal
+leveneTest(gonad26$`a*`~gonad26$sex) # NOT equal variance FOR SEX
+
+#so week 26 excl F = t.test with varequal = F
+
+
+
+```
+
+Testing significance:
+Diet
+```{r}
+
+#week 9 - Welch ANOVA
+
+oneway.test(`a*`~diet, data = gonad9, var.equal = FALSE) #not sig
+
+#week 19 - ANOVA
+
+anova19<- aov(`a*`~diet,data=gonad19)
+summary(anova19)
+Tukey19 = TukeyHSD(anova19, ordered = TRUE)
+Tukey19
+
+#week 26 - log ANOVA
+
+gonad26$loga <- log(gonad26$`a*`)
+
+anova26<- aov(loga~diet,data=gonad26)
+summary(anova26)
+Tukey26 = TukeyHSD(anova26, ordered = TRUE)
+Tukey26
+
+
+```
+Temperature
+```{r}
+require(coin)
+
+t.test(`a*`~temperature, data = gonad9, var.equal=T)
+t.test(`a*`~temperature, data = gonad19, var.equal=T)
+t.test(loga~temperature, data = gonad26, var.equal=T)
+```
+
+Sex
+```{r}
+require(coin)
+#week 9
+t.test(`a*`~sex, data = gonad9, var.equal=T)
+t.test(`a*`~sex, data = gonad9, var.equal=T, alternative = "greater")
+
+#week 19
+t.test(`a*`~sex, data = gonad19, var.equal=F)
+t.test(`a*`~sex, data = gonad19, var.equal=F, alternative = "greater")
+
+#week26
+t.test(loga~sex, data = gonad26, var.equal=F)
+t.test(loga~sex, data = gonad26, var.equal=F, alternative = "greater")
+
+#so week 26 excl F = t.test with varequal = F
+t.test(`a*`~sex, data = gonad26, var.equal=F)
+t.test(`a*`~sex, data = gonad26, var.equal=F, alternative = "greater")
+```
+Averages
+```{r}
+#diet
+gonad9 %>% group_by(diet) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+gonad19 %>% group_by(diet) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+gonad26 %>% group_by(diet) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+#temperature
+gonad9 %>% group_by(temperature) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+gonad19 %>% group_by(temperature) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+gonad26 %>% group_by(temperature) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+#sex
+gonad9 %>% group_by(sex) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+gonad19 %>% group_by(sex) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+gonad26 %>% group_by(sex) %>% summarise(mean = mean(`a*`), se = sd(`a*`)/sqrt(length(`a*`)))
+
+```
+
+
+
+
+
+
+
+
+##Yellowness
+```{r}
+require(car)
+shapiro.test(gonad9$`b*`) #not normal
+shapiro.test(log10(max(gonad9$`b*`+1) - gonad9$`b*`)) #not normal
+shapiro.test(log(gonad9$`b*`))#log not normal
+shapiro.test(log(gonad9$`b*` + abs(min(gonad9$`b*`)) + 1)) #not normal
+shapiro.test(log10(abs(max(gonad9$`b*`+1)) - gonad9$`b*`)) #not normal
+shapiro.test(sqrt(gonad9$`b*`))#sqrt normal - BUT NOT APPROPRIATE
+leveneTest(sqrt(gonad9$`b*`)~gonad9$diet) # equal variance
+leveneTest(sqrt(gonad9$`b*`)~gonad9$temperature) # equal variance
+leveneTest(sqrt(gonad9$`b*`)~gonad9$sex) # equal variance
+
+shapiro.test(gonad19$`b*`) #not normal
+shapiro.test(log10(max(gonad19$`b*`+1) - gonad19$`b*`)) #not normal
+shapiro.test(log(gonad19$`b*`))#sqrt not normal, log not normal
+leveneTest(gonad19$`b*`~gonad19$diet) # equal variance
+leveneTest(gonad19$`b*`~gonad19$temperature) # equal variance
+leveneTest(gonad19$`b*`~gonad19$sex) # equal variance
+
+shapiro.test(gonad26$`b*`) #not normal
+shapiro.test(log10(max(gonad26$`b*`+1) - gonad26$`b*`)) #notnormal
+shapiro.test(sqrt(gonad26$`b*`)) #log not normal, sqrt not normal
+leveneTest(gonad26$`b*`~gonad26$diet) # equal variance
+leveneTest(gonad26$`b*`~gonad26$temperature) #equal variance
+leveneTest(gonad26$`b*`~gonad26$sex) # equal variance
+
+#week 9 - Kruskal-Wallis
+#week 19 - Kruskal-Wallis
+#week 26 - Kruskal-Wallis
+
+#week 26 - excl Formulated - Mann-Whitney
+shapiro.test(gonad26$`b*`) #not normal
+leveneTest(gonad26$`b*`~gonad26$sex) # equal variance
+
+```
+
+Testing significance:
+Diet
+```{r}
+#week 9 - Kruskal-Wallis
+kruskal.test(`b*` ~ diet, data = gonad9) #notsig
+
+
+
+#week 19 - Kruskal-Wallis
+kruskal.test(`b*` ~ diet, data = gonad19) #notsig
+
+
+#week 26 - Kruskal-Wallis
+kruskal.test(`b*` ~ diet, data = gonad26)
+
+require("dunn.test")
+dunn.test(gonad26$`b*`, g = gonad26$diet, altp = TRUE, method = "bonferroni")
+
+```
+Temperature
+```{r}
+require(coin)
+
+U = wilcox_test(`b*` ~temperature, data = gonad9, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(`b*` ~temperature, data = gonad19, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(`b*` ~temperature, data = gonad26, 
+                 alternative = "two.sided")
+U
+```
+Sex
+```{r}
+require(coin)
+
+U = wilcox_test(`b*` ~sex, data = gonad9, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(`b*` ~sex, data = gonad19, 
+                 alternative = "two.sided")
+U
+
+U = wilcox_test(`b*` ~sex, data = gonad26, 
+                 alternative = "two.sided")
+U
+
+#week 26 excl Formulated
+U = wilcox_test(`b*` ~sex, data = gonad26, 
+                 alternative = "two.sided")
+U
+```
+Averages
+```{r}
+#diet
+gonad9 %>% group_by(diet) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+gonad19 %>% group_by(diet) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+gonad26 %>% group_by(diet) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+#temperature
+gonad9 %>% group_by(temperature) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+gonad19 %>% group_by(temperature) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+gonad26 %>% group_by(temperature) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+#sex
+gonad9 %>% group_by(sex) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+gonad19 %>% group_by(sex) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+gonad26 %>% group_by(sex) %>% summarise(mean = mean(`b*`), se = sd(`b*`)/sqrt(length(`b*`)))
+
+```
 
 

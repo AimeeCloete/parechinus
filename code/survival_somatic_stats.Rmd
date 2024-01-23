@@ -1,0 +1,52 @@
+---
+title: "survival & somatic"
+author: "Aimee"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(knitr)  
+setwd("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data")
+```
+
+#Survival
+```{r}
+survival <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/survival.xlsx")
+
+survival$Treatment <- paste0(substr(survival$Diet, 1, 1), substr(survival$Temperature, 1, 1))
+
+survival <- survival %>%
+  mutate(across(everything(), ~ifelse(is.na(.), 0, .)))
+
+survival <- survival %>% group_by(Tank) %>% mutate(CumMort= cumsum(Mortalities), CumMorb = cumsum(Morbidities))
+
+survival <-survival %>% group_by(Tank) %>% mutate(survival_rate = 100*( (19-CumMort)/19))
+
+survival$Temperature <- as.factor(survival$Temperature)
+
+week1_survival <- survival%>% filter(Week == 1)
+week9_survival <- survival%>% filter(Week == 9)
+week10_survival <- survival%>% filter(Week == 10)
+week18_survival <- survival%>% filter(Week == 18)
+week24_survival <- survival%>% filter(Week == 24)
+
+```
+
+Normal & Homo Tests
+```{r}
+require(car)
+
+shapiro.test(week9_survival$survival_rate) # not normal
+shapiro.test(week10_survival$survival_rate) # not normal
+shapiro.test(week18_survival$survival_rate) # not normal
+shapiro.test(week24_survival$survival_rate) # not normal
+
+shapiro.test(log10(max(week9_survival$survival_rate+1) - week9_survival$survival_rate)) #log not normal
+
+
+```
+
