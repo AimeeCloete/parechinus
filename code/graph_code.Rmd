@@ -728,8 +728,8 @@ feed <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive -
 
 ```{r}
 feed_dat <- feed %>% group_by(treatment,week) %>% 
-  summarise(feedcon = mean(`feed consumed per animal per day` ),
-            se = sd(`feed consumed per animal per day`)/sqrt(length(`feed consumed per animal per day`))) 
+  summarise(feedcon = mean(`feed consumed per animal per week` ),
+            se = sd(`feed consumed per animal per week`)/sqrt(length(`feed consumed per animal per week`))) 
 
 feed_dat <- inner_join(feed_dat,feed%>% select(treatment,temperature,diet, `feed type`)%>% unique(),by = "treatment")  
   
@@ -738,20 +738,19 @@ diet_colors <- c("mixed" = "blue", "formulated" = "red", "ulva" = "darkgreen", "
 
 
 feed_plot <- feed_dat %>%
-  ggplot(aes(x = week, y = feedcon, color = diet)) +
-  geom_line() +
-  geom_errorbar(aes(ymin = feedcon - se, ymax = feedcon + se), width = 0.2) +
-  scale_x_continuous(breaks = c(8, 13,18, 23)) +
-  facet_wrap(~ temperature, scales = "free_x", ncol = 2) +
-  scale_color_manual(values = diet_colors) + labs(title = "Cape sea urchin feed consumption rate (feed consumed per animal per day) over time",
+  ggplot(aes(x = temperature, y = feedcon, fill = diet)) +
+  geom_col(position = position_dodge(width = 0.9), color = "black", width = 0.9) +
+  geom_errorbar(aes(ymin = feedcon - se, ymax = feedcon + se), position = position_dodge(width = 0.9), width = 0.2) +
+  facet_wrap(~ week, scales = "free_x", ncol = 4) +
+  scale_fill_manual(values = diet_colors) + labs(title = "Cape sea urchin feed consumption rate (feed consumed per animal per week) per diet and temperature over time",
        x = "Week",
-       y = "Feed consumption rate (feed consumed per animal per day)",
+       y = "Feed consumption rate (feed consumed per animal per week)",
        color = "Diet")+
   theme_classic() + theme(plot.title = element_text(hjust = 0.5))
 
 file_path <- "C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/graphs/parechinus_feed.png"
 
-ggsave(file_path, feed_plot, width = 10, height = 6, units = "in")
+ggsave(file_path, feed_plot, width = 14, height = 6, units = "in")
 ```
 
 #FCR (feed consumed/weight gain)

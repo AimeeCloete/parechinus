@@ -817,6 +817,7 @@ gonad9 <- gonad %>% filter(week == 9)
 gonad19 <- gonad %>% filter(week == 19)
 gonad26 <- gonad %>% filter(week == 26)
 
+gonad26nof <- gonad %>% filter(week == 26) %>% filter(diet!= "formulated")
 
 ```
 
@@ -826,7 +827,7 @@ require(car)
 
 GSI_prior_tests <- function(data){
   shapiro <- shapiro.test(data$GSI)
-  levene <- leveneTest(data$GSI~data$treatment)
+  levene <- leveneTest(data$GSI~data$diet)
   print(shapiro)
   print(levene)
 }
@@ -911,6 +912,8 @@ t.test(GSI~temperature, data = gonad26, var.equal=T)
 ```
 
 
+
+
 #Gonad stage
 ```{r}
 gonad_stage <- read_excel("C:/Users/aimee/OneDrive - University of Cape Town/OneDrive - University of Cape Town/msc_thesis/parechinus/data/gonad_stage_MBH.xlsx")
@@ -989,6 +992,11 @@ daily_temp <- temperature %>% group_by(Date, Treatment, Period) %>%
   summarise(daytemp = mean(`Temp °C` ),
             se = sd(`Temp °C`)/sqrt(length(`Temp °C`)))
 
+a_temp <- daily_temp %>% filter(Treatment == "Ambient")
+w_temp <- daily_temp %>% filter(Treatment == "Warmed")
+
+shapiro.test(a_temp$daytemp) #not normal
+shapiro.test(w_temp$daytemp) #not normal
 
 #transformation
 transformation <- daily_temp %>% group_by(Treatment) %>% mutate(daytemp_trans = log10(max(daytemp+1) - daytemp), daytemp_log = log(daytemp))

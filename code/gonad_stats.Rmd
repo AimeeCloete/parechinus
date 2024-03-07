@@ -199,10 +199,17 @@ t.test(GSI~temperature, data = gonad26, var.equal=T)
 
 T-tests for sex effect
 ```{r}
+
+gonad26nof <- gonad26 %>% filter(diet != "formulated")
 t.test(logGSI~sex, data = gonad9, var.equal=T)
 t.test(GSI~sex, data = gonad19, var.equal=T)
 t.test(GSI~sex, data = gonad26, var.equal=T)
 t.test(GSI~sex, data = gonad26, var.equal=T, alternative = "greater")
+
+shapiro.test(gonad26nof$GSI) #normal
+leveneTest(gonad26nof$GSI ~ gonad26nof$sex) #equal variance
+t.test(GSI~sex, data = gonad26nof, var.equal=T)
+
 ```
 
 Averages
@@ -227,6 +234,8 @@ gonad9 %>% group_by(sex) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(lengt
 gonad19 %>% group_by(sex) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
 
 gonad26 %>% group_by(sex) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
+
+gonad26nof %>% group_by(sex) %>% summarise(mean = mean(GSI), se = sd(GSI)/sqrt(length(GSI)))
 
 ```
 
